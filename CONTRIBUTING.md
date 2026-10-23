@@ -15,7 +15,7 @@ El objetivo es que `main` permanezca siempre estable, probada y desplegable.
 
 ## 2. Invitar a los 5 colaboradores (lo hace el creador)
 
-1. Entrar al repositorio: <https://github.com/ivanechajay21/TALLERAUTO>.
+1. Entrar al repositorio: <https://github.com/ivanechajay21/TallerAuto-Grupo6>.
 2. Ir a **Settings** → **Collaborators** (o **Collaborators and teams**).
 3. Pulsar **Add people**.
 4. Escribir el **usuario de GitHub** de cada integrante y asignar el rol **Write**.
@@ -50,7 +50,7 @@ Con esto, **nadie puede hacer push directo a `main`**: todo entra por PR revisad
 ### 3.1 Clonar (una sola vez)
 
 ```bash
-git clone https://github.com/ivanechajay21/TALLERAUTO.git
+git clone https://github.com/ivanechajay21/TallerAuto-Grupo6.git
 cd TALLERAUTO
 git config user.name "Tu Nombre"
 git config user.email "tu@correo.com"

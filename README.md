@@ -68,7 +68,7 @@ Aplicación **full-stack** para digitalizar la operación de un taller mecánico
 
 1. **Clona** el repositorio:
    ```bash
-   git clone https://github.com/ivanechajay21/TALLERAUTO.git
+   git clone https://github.com/ivanechajay21/TallerAuto-Grupo6.git
    cd TALLERAUTO
    ```
 
@@ -205,7 +205,7 @@ TALLERAUTO/
 ### 1) Clonar el repositorio (una sola vez)
 
 ```bash
-git clone https://github.com/ivanechajay21/TALLERAUTO.git
+git clone https://github.com/ivanechajay21/TallerAuto-Grupo6.git
 cd TALLERAUTO
 git config user.name "Tu Nombre"
 git config user.email "tu@correo.com"
