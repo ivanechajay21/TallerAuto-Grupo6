@@ -50,4 +50,8 @@ Thumbs.db
 # Reportes PDF generados por el módulo de Reportes
 frontend/reporte-*.pdf
 
+README_LIB_JAVA.md
+README_seguridad.md
+README_PRINCIPIOS.md
+
 .fake
