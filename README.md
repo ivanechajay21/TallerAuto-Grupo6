@@ -8,17 +8,6 @@ Aplicación **full-stack** para digitalizar la operación de un taller mecánico
 
 ---
 
-## Equipo
-
-| # | Integrante | Usuario de GitHub | Rol en el proyecto |
-|---|---|---|---|
-| 1 | _Nombre y apellido_ | [@usuario1](https://github.com/usuario1) | Líder de proyecto · Backend y seguridad |
-| 2 | _Nombre y apellido_ | [@usuario2](https://github.com/usuario2) | Backend · Servicios y API REST |
-| 3 | _Nombre y apellido_ | [@usuario3](https://github.com/usuario3) | Frontend · Interfaz y experiencia de usuario |
-| 4 | _Nombre y apellido_ | [@usuario4](https://github.com/usuario4) | QA · Pruebas, CI y documentación |
-| 5 | _Nombre y apellido_ | [@usuario5](https://github.com/usuario5) | DevOps · Docker, base de datos y despliegue |
-
-> ✏️ **Pendiente para la entrega:** reemplazar los nombres y usuarios de ejemplo por los reales. Los roles son una propuesta; ajústenlos según el trabajo de cada integrante.
 
 ---
 
