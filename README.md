@@ -132,7 +132,7 @@ npm run dev
 **Backend** (JUnit 5 + Mockito; sin base de datos):
 ```bash
 cd backend
-./mvnw -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest test
+./mvnw -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test
 ```
 | Suite | Capa | Pruebas |
 |---|---|---:|
@@ -140,7 +140,8 @@ cd backend
 | `RolServiceTest` | Servicio (roles + salvaguarda del ADMIN) | 13 |
 | `ProductoControllerTest` | Web (HTTP + permisos) | 10 |
 | `RolControllerTest` | Web (roles + rol ADMIN) | 11 |
-| **Total** | | **46** |
+| `OrdenTrabajoControllerTest` | Web (ítems + asignación de mecánico) | 5 |
+| **Total** | | **51** |
 
 **Frontend** (Vitest + Testing Library):
 ```bash
@@ -157,7 +158,7 @@ npm test
 | `Vehicles.test.tsx` | 4 |
 | **Total** | **23** |
 
-> **69 pruebas** en total (46 backend + 23 frontend).
+> **74 pruebas** en total (51 backend + 23 frontend).
 
 ---
 
