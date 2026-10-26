@@ -17,7 +17,6 @@ import java.util.List;
  * Su mantenimiento (alta y edición) se administra desde Configuración y exige
  * {@code CONFIGURACION:EDITAR}.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/catalogo-servicios")
 @RequiredArgsConstructor

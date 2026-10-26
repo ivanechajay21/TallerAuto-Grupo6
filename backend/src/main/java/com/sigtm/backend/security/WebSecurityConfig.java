@@ -60,13 +60,16 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Value("${app.cors.allowed-origins:*}")
+    @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
 
     @Bean
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of(allowedOrigins.split(",")));
+        configuration.setAllowedOrigins(java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*"));
         configuration.setExposedHeaders(java.util.List.of("x-auth-token"));
@@ -85,7 +88,6 @@ public class WebSecurityConfig {
                     auth.dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/autenticacion/**").permitAll()
-                        .requestMatchers("/api/test/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()

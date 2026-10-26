@@ -19,6 +19,7 @@ import com.sigtm.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +45,9 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
+
+    @Value("${app.seed.enabled:false}")
+    private boolean seedEnabled;
 
     private final UsuarioRepository userRepository;
     private final RolRepository roleRepository;
@@ -93,6 +97,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled) {
+            return;
+        }
         Map<String, Rol> roles = seedRoles();
 
         seedUsers(roles);

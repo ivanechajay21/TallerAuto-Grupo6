@@ -16,7 +16,6 @@ import java.util.Map;
  * exigen el permiso {@code AUDITORIA:VER} y la escritura se registra de forma
  * automática desde los servicios, nunca desde este controlador.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/auditoria")
 @RequiredArgsConstructor

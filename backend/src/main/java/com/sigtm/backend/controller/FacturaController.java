@@ -17,7 +17,6 @@ import java.util.Map;
  * {@code FACTURAS} ({@code FACTURAS:VER}, {@code FACTURAS:CREAR} y
  * {@code FACTURAS:APROBAR} para el cobro).</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/facturas")
 @RequiredArgsConstructor

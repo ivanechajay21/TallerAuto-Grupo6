@@ -76,6 +76,11 @@ public class GlobalExceptionHandler {
                 "Tu cuenta está desactivada. Contacta al administrador."), HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyRequests(TooManyRequestsException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()), HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         log.error("Excepción no controlada (RuntimeException): ", ex);

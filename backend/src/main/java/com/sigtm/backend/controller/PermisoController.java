@@ -15,7 +15,6 @@ import java.util.Map;
  * <p>Expone {@code /api/permisos} en modo solo lectura; la única operación exige
  * {@code ROLES:VER} porque se consume en la matriz de Roles y Permisos.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/permisos")
 @RequiredArgsConstructor

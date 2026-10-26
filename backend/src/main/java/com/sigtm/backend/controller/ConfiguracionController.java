@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
  * servidor SMTP, y las banderas de notificación). La lectura exige
  * {@code CONFIGURACION:VER} y la modificación {@code CONFIGURACION:EDITAR}.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/configuracion")
 @RequiredArgsConstructor

@@ -1,12 +1,16 @@
 package com.sigtm.backend.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -23,6 +27,8 @@ import java.util.UUID;
 @Service
 @Slf4j
 public class StorageService {
+
+    private static final long MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
@@ -42,20 +48,40 @@ public class StorageService {
         if (file == null || file.isEmpty()) {
             return null;
         }
+        validateImage(file);
         String monthDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         Path directory = Paths.get(uploadDir).resolve(monthDir).toAbsolutePath().normalize();
-        Files.createDirectories(directory);
+        FileUtils.forceMkdir(directory.toFile());
 
-        String original = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
-        String extension = original.contains(".")
-                ? original.substring(original.lastIndexOf('.'))
-                : "";
+        String extension = extensionFor(file.getContentType());
         String filename = UUID.randomUUID().toString().replace("-", "") + extension;
         Path target = directory.resolve(filename);
-        file.transferTo(target);
+        try (InputStream input = file.getInputStream()) {
+            FileUtils.copyInputStreamToFile(input, target.toFile());
+        }
 
         Path base = Paths.get(uploadDir).toAbsolutePath().normalize();
         Path relative = base.relativize(target);
         return "/uploads/" + relative.toString().replace('\\', '/');
+    }
+
+    private void validateImage(MultipartFile file) throws IOException {
+        if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
+            throw new IllegalArgumentException("Cada imagen debe pesar como máximo 10 MB");
+        }
+        String contentType = StringUtils.defaultIfBlank(file.getContentType(), "");
+        if (!StringUtils.equalsAnyIgnoreCase(contentType, "image/jpeg", "image/png")) {
+            throw new IllegalArgumentException("Solo se permiten imágenes JPEG o PNG");
+        }
+        try (InputStream input = file.getInputStream()) {
+            BufferedImage image = ImageIO.read(input);
+            if (image == null || image.getWidth() <= 0 || image.getHeight() <= 0) {
+                throw new IllegalArgumentException("El archivo no contiene una imagen válida");
+            }
+        }
+    }
+
+    private String extensionFor(String contentType) {
+        return StringUtils.equalsIgnoreCase(contentType, "image/png") ? ".png" : ".jpg";
     }
 }

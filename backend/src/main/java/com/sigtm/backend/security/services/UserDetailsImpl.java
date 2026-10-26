@@ -39,6 +39,7 @@ public class UserDetailsImpl implements UserDetails {
     private String avatarUrl;
 
     private Boolean active;
+    private int tokenVersion;
     private Collection<? extends GrantedAuthority> authorities;
 
     /**
@@ -69,6 +70,7 @@ public class UserDetailsImpl implements UserDetails {
                 roleName,
                 user.getAvatarUrl(),
                 user.getActive(),
+                user.getTokenVersion(),
                 authorities);
     }
 

@@ -49,3 +49,5 @@ Thumbs.db
 
 # Reportes PDF generados por el módulo de Reportes
 frontend/reporte-*.pdf
+
+.fake

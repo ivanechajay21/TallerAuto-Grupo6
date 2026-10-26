@@ -19,7 +19,6 @@ import java.util.Set;
  * a {@code ADMIN} de {@code MANAGER}, por lo que se mantiene la restricción de
  * plataforma por rol.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor

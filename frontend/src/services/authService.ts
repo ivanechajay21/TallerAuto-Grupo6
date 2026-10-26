@@ -67,7 +67,7 @@ export const resetPassword = async (token: string, newPassword: string) => {
   return response.data;
 };
 
-export const getMe = async (userId: number) => {
-  const response = await api.get(`/autenticacion/perfil/${userId}`);
+export const getMe = async () => {
+  const response = await api.get('/autenticacion/perfil');
   return response.data;
 };

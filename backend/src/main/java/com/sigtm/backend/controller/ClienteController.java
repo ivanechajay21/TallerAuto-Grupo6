@@ -18,7 +18,6 @@ import java.util.List;
  * Roles y Permisos. La eliminación es lógica: desactiva el cliente y conserva
  * su historial.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/clientes")
 @RequiredArgsConstructor
