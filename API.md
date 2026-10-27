@@ -32,7 +32,7 @@ Frontend (React + Vite)  ──HTTP/JSON──►  API REST (Spring Boot)  ─�
 | POST | `/ingresar` | público | `login()` |
 | POST | `/olvidar-contrasena` | público | `forgotPassword()` |
 | POST | `/restablecer-contrasena` | público | `resetPassword()` |
-| GET | `/perfil/{id}` | sesión válida | `getMe()` |
+| GET | `/perfil` | sesión válida; siempre devuelve el perfil del JWT | `getMe()` |
 
 ### Clientes `[/api/clientes]`
 | Método | Endpoint | Permiso | Función |
@@ -125,6 +125,7 @@ Frontend (React + Vite)  ──HTTP/JSON──►  API REST (Spring Boot)  ─�
 | GET | `/panel-dona` | `DASHBOARD:VER` | `getDashboardDonut()` |
 | GET | `/servicios-mas-solicitados` | `DASHBOARD:VER` | `getTopServices()` |
 | GET | `/centro?tipo=` | `REPORTES:VER` | `getReporteCentro()` |
+| GET | `/centro/excel?tipo=` | `REPORTES:EXPORTAR` | `exportCentroExcelConApachePoi()`; disponible solo con `USE_APACHE_POI=true` |
 
 ### Usuarios `[/api/usuarios]`
 | Método | Endpoint | Permiso | Función |
@@ -171,8 +172,9 @@ Frontend (React + Vite)  ──HTTP/JSON──►  API REST (Spring Boot)  ─�
 
 `frontend/src/services/exportService.ts`:
 - `exportCentroPdf()` / `exportCentroExcel()` — reporte del Centro de Reportes.
+- Con `VITE_USE_APACHE_POI=true`, `exportCentroExcelConApachePoi()` descarga el XLSX desde el endpoint protegido del backend; con `false` usa `xlsx` localmente.
 - `exportReportPdf()` / `exportReportExcel()` — reporte de rendimiento.
-- Usan **jsPDF + jspdf-autotable** (PDF) y **xlsx** (Excel).
+- Usan **jsPDF + jspdf-autotable** (PDF), **xlsx** (Excel local) y Apache POI en el backend para el Excel opcional del Centro de Reportes.
 
 ## Estado global y utilidades (frontend)
 
@@ -183,7 +185,7 @@ Frontend (React + Vite)  ──HTTP/JSON──►  API REST (Spring Boot)  ─�
 ## Librerías
 
 - **Frontend**: `axios`, `react`, `react-dom`, `react-router-dom`, `recharts`, `lucide-react`, `jspdf`, `jspdf-autotable`, `xlsx`, `clsx`, `tailwind-merge`, Tailwind v4, Vite, TypeScript.
-- **Backend**: Spring Boot (web, data-jpa, security, validation, mail), `mysql-connector-j`, `lombok`, `jackson-databind`, `jjwt`.
+- **Backend**: Spring Boot (web, data-jpa, security, validation, mail), Apache POI, `mysql-connector-j`, `lombok`, `jackson-databind`, `jjwt`.
 
 ## Servicios externos
 

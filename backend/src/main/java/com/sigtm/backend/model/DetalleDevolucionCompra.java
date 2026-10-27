@@ -1,0 +1,4 @@
+package com.sigtm.backend.model;
+import com.fasterxml.jackson.annotation.JsonIgnore; import jakarta.persistence.*; import lombok.*; import java.math.BigDecimal;
+@Entity @Table(name="detalles_devolucion_compra") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class DetalleDevolucionCompra { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="devolucion_id",nullable=false) @JsonIgnore private DevolucionCompra returnDocument; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="detalle_orden_compra_id",nullable=false) private DetalleOrdenCompra purchaseItem; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="producto_id",nullable=false) private Producto product; @Column(nullable=false) private Integer quantity; @Column(nullable=false,precision=12,scale=2) private BigDecimal unitCost; }

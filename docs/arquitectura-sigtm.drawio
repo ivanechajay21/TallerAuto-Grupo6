@@ -1,0 +1,123 @@
+<mxfile host="65bd71144e">
+    <diagram id="sigtm-architecture" name="Arquitectura SIGTM">
+        <mxGraphModel dx="887" dy="415" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#172B4D;" value="SIGTM · Arquitectura en capas (API REST + SPA)" vertex="1">
+                    <mxGeometry height="40" width="820" x="390" y="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontColor=#5E6C84;" value="Sistema Integral de Gestión para Talleres Mecánicos" vertex="1">
+                    <mxGeometry height="30" width="680" x="460" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="clientGroup" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#F4F5F7;strokeColor=#A5ADBA;fontStyle=1;fontColor=#172B4D;" value="USUARIO" vertex="1">
+                    <mxGeometry height="230" width="205" x="40" y="165" as="geometry"/>
+                </mxCell>
+                <mxCell id="client" parent="clientGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#5E6C84;fontColor=#172B4D;align=center;verticalAlign=middle;spacing=8;" value="&lt;b&gt;Navegador web&lt;/b&gt;&lt;br&gt;Administrador · Gerente&lt;br&gt;Recepción · Mecánico · Almacén" vertex="1">
+                    <mxGeometry height="105" width="165" x="20" y="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="frontendGroup" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#E6FCFF;strokeColor=#00A3BF;fontStyle=1;fontColor=#005F73;" value="FRONTEND · React 19 / TypeScript / Vite" vertex="1">
+                    <mxGeometry height="420" width="300" x="310" y="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="routes" parent="frontendGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#00A3BF;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Vistas y rutas&lt;/b&gt;&lt;br&gt;Panel, clientes, vehículos, citas&lt;br&gt;Órdenes, inventario, facturación&lt;br&gt;Reportes, usuarios y configuración" vertex="1">
+                    <mxGeometry height="105" width="260" x="20" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="access" parent="frontendGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#00A3BF;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Acceso y experiencia&lt;/b&gt;&lt;br&gt;RouteGuard · PermissionContext&lt;br&gt;JWT en Authorization Bearer" vertex="1">
+                    <mxGeometry height="82" width="260" x="20" y="185" as="geometry"/>
+                </mxCell>
+                <mxCell id="services" parent="frontendGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#00A3BF;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Servicios HTTP&lt;/b&gt;&lt;br&gt;Axios · /api · exportación PDF/XLSX" vertex="1">
+                    <mxGeometry height="70" width="260" x="20" y="292" as="geometry"/>
+                </mxCell>
+                <mxCell id="apiGroup" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#E3FCEF;strokeColor=#36B37E;fontStyle=1;fontColor=#006644;" value="BACKEND · Spring Boot / Java 21" vertex="1">
+                    <mxGeometry height="510" width="530" x="700" y="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="security" parent="apiGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF0B3;strokeColor=#FFAB00;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Seguridad transversal&lt;/b&gt;&lt;br&gt;Spring Security · JWT · BCrypt · CORS&lt;br&gt;Permisos por endpoint (@PreAuthorize)" vertex="1">
+                    <mxGeometry height="72" width="490" x="20" y="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="controllers" parent="apiGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#36B37E;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Controllers · API REST&lt;/b&gt;&lt;br&gt;Autenticación, clientes, vehículos, citas, recepción&lt;br&gt;Órdenes, productos, facturas, reportes, administración" vertex="1">
+                    <mxGeometry height="76" width="490" x="20" y="145" as="geometry"/>
+                </mxCell>
+                <mxCell id="domain" parent="apiGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#36B37E;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Services · Dominio y casos de uso&lt;/b&gt;&lt;br&gt;Validación · auditoría · inventario · facturación · reportes&lt;br&gt;Correo · archivos · rate limiting con Guava" vertex="1">
+                    <mxGeometry height="76" width="490" x="20" y="245" as="geometry"/>
+                </mxCell>
+                <mxCell id="repositories" parent="apiGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#36B37E;align=left;verticalAlign=middle;spacing=10;" value="&lt;b&gt;Repositories / DAO · Spring Data JPA&lt;/b&gt;&lt;br&gt;Acceso encapsulado a entidades y consultas" vertex="1">
+                    <mxGeometry height="65" width="490" x="20" y="345" as="geometry"/>
+                </mxCell>
+                <mxCell id="crosscutting" parent="apiGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F4F5F7;strokeColor=#A5ADBA;align=center;verticalAlign=middle;fontStyle=2;" value="Excepciones globales · DTOs · Validación · Logback" vertex="1">
+                    <mxGeometry height="42" width="490" x="20" y="433" as="geometry"/>
+                </mxCell>
+                <mxCell id="dbGroup" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#F3E8FF;strokeColor=#8777D9;fontStyle=1;fontColor=#403294;" value="PERSISTENCIA Y SERVICIOS" vertex="1">
+                    <mxGeometry height="385" width="230" x="1320" y="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="mysql" parent="dbGroup" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#FFFFFF;strokeColor=#8777D9;align=center;verticalAlign=middle;" value="&lt;b&gt;MySQL 8&lt;/b&gt;&lt;br&gt;Usuarios · operación · catálogos&lt;br&gt;Auditoría · configuración" vertex="1">
+                    <mxGeometry height="119" width="170" x="30" y="55" as="geometry"/>
+                </mxCell>
+                <mxCell id="uploads" parent="dbGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8777D9;align=center;verticalAlign=middle;" value="&lt;b&gt;Almacenamiento&lt;/b&gt;&lt;br&gt;Imágenes de recepción&lt;br&gt;/uploads" vertex="1">
+                    <mxGeometry height="72" width="170" x="30" y="187" as="geometry"/>
+                </mxCell>
+                <mxCell id="smtp" parent="dbGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#8777D9;align=center;verticalAlign=middle;" value="&lt;b&gt;SMTP&lt;/b&gt;&lt;br&gt;Recuperación de contraseña" vertex="1">
+                    <mxGeometry height="62" width="170" x="30" y="297" as="geometry"/>
+                </mxCell>
+                <mxCell id="testingGroup" parent="1" style="swimlane;html=1;rounded=1;startSize=30;fillColor=#FFF7E6;strokeColor=#FF8B00;fontStyle=1;fontColor=#8A4B00;" value="CALIDAD Y ENTREGA" vertex="1">
+                    <mxGeometry height="155" width="920" x="310" y="665" as="geometry"/>
+                </mxCell>
+                <mxCell id="frontendTests" parent="testingGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FF8B00;align=center;verticalAlign=middle;" value="&lt;b&gt;Frontend&lt;/b&gt;&lt;br&gt;Vitest + Testing Library&lt;br&gt;Componentes, hooks y páginas" vertex="1">
+                    <mxGeometry height="75" width="230" x="35" y="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="backendTests" parent="testingGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FF8B00;align=center;verticalAlign=middle;" value="&lt;b&gt;Backend&lt;/b&gt;&lt;br&gt;JUnit 5 + Mockito + MockMvc&lt;br&gt;Servicios y controladores" vertex="1">
+                    <mxGeometry height="75" width="230" x="345" y="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="docker" parent="testingGroup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#FF8B00;align=center;verticalAlign=middle;" value="&lt;b&gt;Despliegue&lt;/b&gt;&lt;br&gt;Docker Compose · Nginx · MySQL&lt;br&gt;Entorno integrado y desarrollo" vertex="1">
+                    <mxGeometry height="75" width="230" x="655" y="48" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" edge="1" parent="1" source="client" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5E6C84;endArrow=block;endFill=1;" target="routes" value="HTTPS / UI">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" edge="1" parent="1" source="services" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#00A3BF;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;" target="controllers" value="REST JSON · JWT">
+                    <mxGeometry relative="1" x="-0.155" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="647.4" y="447"/>
+                            <mxPoint x="647.4" y="293"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e3" edge="1" parent="1" source="controllers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#36B37E;endArrow=block;endFill=1;" target="domain" value="">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" edge="1" parent="1" source="domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#36B37E;endArrow=block;endFill=1;" target="repositories" value="">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" edge="1" parent="1" source="repositories" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8777D9;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;" target="mysql" value="JPA / SQL">
+                    <mxGeometry relative="1" x="0.6314" y="-23" as="geometry">
+                        <mxPoint as="offset"/>
+                        <Array as="points">
+                            <mxPoint x="1250.3" y="487.5"/>
+                            <mxPoint x="1250.3" y="247.5"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e6" edge="1" parent="1" source="domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#8777D9;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;" target="uploads" value="archivos">
+                    <mxGeometry relative="1" x="0.3134" y="13" as="geometry">
+                        <mxPoint as="offset"/>
+                        <Array as="points">
+                            <mxPoint x="1280" y="393"/>
+                            <mxPoint x="1280" y="366"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e7" edge="1" parent="1" source="domain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#8777D9;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;" target="smtp" value="correo">
+                    <mxGeometry relative="1" x="0.5171" y="13" as="geometry">
+                        <mxPoint as="offset"/>
+                        <Array as="points">
+                            <mxPoint x="1279" y="393"/>
+                            <mxPoint x="1279" y="478"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="e8" edge="1" parent="1" source="security" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#FFAB00;endArrow=block;endFill=1;labelBackgroundColor=#FFFFFF;" target="controllers" value="protege">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

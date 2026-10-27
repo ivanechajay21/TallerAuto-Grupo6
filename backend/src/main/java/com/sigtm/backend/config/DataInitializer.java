@@ -19,6 +19,7 @@ import com.sigtm.backend.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +45,9 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
+
+    @Value("${app.seed.enabled:false}")
+    private boolean seedEnabled;
 
     private final UsuarioRepository userRepository;
     private final RolRepository roleRepository;
@@ -82,7 +86,8 @@ public class DataInitializer implements CommandLineRunner {
             "ROLE_STOREKEEPER", java.util.Set.of(
                     "NOTIFICACIONES:VER",
                     "PRODUCTOS:VER",
-                    "MOVIMIENTOS:VER", "MOVIMIENTOS:CREAR"));
+                    "MOVIMIENTOS:VER", "MOVIMIENTOS:CREAR",
+                    "PROVEEDORES:VER", "COMPRAS:VER", "COMPRAS:RECEPCIONAR"));
 
     /**
      * Ejecuta la siembra de todos los datos iniciales del sistema.
@@ -93,6 +98,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        if (!seedEnabled) {
+            return;
+        }
         Map<String, Rol> roles = seedRoles();
 
         seedUsers(roles);
@@ -159,6 +167,8 @@ public class DataInitializer implements CommandLineRunner {
                 new SubmoduleSpec("MY_WORK", "MI_TRABAJO", "Mi trabajo", "VER", "EDITAR", "CAMBIAR_ESTADO"),
                 new SubmoduleSpec("INVENTORY", "PRODUCTOS", "Productos", "VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR"),
                 new SubmoduleSpec("INVENTORY_MOVS", "MOVIMIENTOS", "Movimientos", "VER", "CREAR", "EXPORTAR"),
+                new SubmoduleSpec("SUPPLIERS", "PROVEEDORES", "Proveedores", "VER", "CREAR", "EDITAR", "ELIMINAR"),
+                new SubmoduleSpec("PURCHASES", "COMPRAS", "Compras", "VER", "CREAR", "EDITAR", "APROBAR", "RECEPCIONAR", "DEVOLVER", "ANULAR"),
                 new SubmoduleSpec("BILLING", "FACTURAS", "Facturas", "VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR", "APROBAR"),
                 new SubmoduleSpec("BILLING_QUOTES", "COTIZACIONES", "Cotizaciones", "VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR", "APROBAR"),
                 new SubmoduleSpec("REPORTS", "REPORTES", "Reportes", "VER", "EXPORTAR"),
@@ -168,15 +178,11 @@ public class DataInitializer implements CommandLineRunner {
                 new SubmoduleSpec("ROLES", "ROLES", "Roles y permisos", "VER", "CREAR", "EDITAR", "ELIMINAR", "ASIGNAR")
         ));
 
-        Map<String, String> actionLabels = Map.of(
-                "VER", "Ver",
-                "CREAR", "Crear",
-                "EDITAR", "Editar",
-                "ELIMINAR", "Eliminar",
-                "EXPORTAR", "Exportar",
-                "APROBAR", "Aprobar",
-                "ASIGNAR", "Asignar",
-                "CAMBIAR_ESTADO", "Cambiar estado");
+        Map<String, String> actionLabels = Map.ofEntries(
+                Map.entry("VER", "Ver"), Map.entry("CREAR", "Crear"), Map.entry("EDITAR", "Editar"),
+                Map.entry("ELIMINAR", "Eliminar"), Map.entry("EXPORTAR", "Exportar"), Map.entry("APROBAR", "Aprobar"),
+                Map.entry("ASIGNAR", "Asignar"), Map.entry("RECEPCIONAR", "Recepcionar"), Map.entry("ANULAR", "Anular"),
+                Map.entry("DEVOLVER", "Devolver"), Map.entry("CAMBIAR_ESTADO", "Cambiar estado"));
 
         java.util.Set<String> catalogCodes = new java.util.HashSet<>();
         List<Permiso> createdNow = new ArrayList<>();
@@ -238,6 +244,11 @@ public class DataInitializer implements CommandLineRunner {
             if (!createdNow.isEmpty()
                     && ("ROLE_ADMIN".equals(role.getName()) || "ROLE_MANAGER".equals(role.getName()))) {
                 role.getPermissions().addAll(createdNow);
+            }
+            if (!createdNow.isEmpty() && "ROLE_STOREKEEPER".equals(role.getName())) {
+                role.getPermissions().addAll(createdNow.stream()
+                        .filter(p -> java.util.Set.of("PROVEEDORES:VER", "COMPRAS:VER", "COMPRAS:RECEPCIONAR").contains(p.getCode()))
+                        .toList());
             }
             if (configJustCreated
                     && !"ROLE_ADMIN".equals(role.getName())

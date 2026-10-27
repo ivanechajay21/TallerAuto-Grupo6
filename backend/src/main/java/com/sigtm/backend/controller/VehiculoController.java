@@ -19,7 +19,6 @@ import java.util.Map;
  * se permite a quien tenga {@code MI_TRABAJO:VER}, ya que el mecánico los abre
  * desde su pantalla de trabajo.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/vehiculos")
 @RequiredArgsConstructor

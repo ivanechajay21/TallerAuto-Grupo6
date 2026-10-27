@@ -1,8 +1,12 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import type { DashboardMetrics, MonthlyRevenueRow, TopService, ReporteCentro } from './reportService';
+import api from './api';
+import type { DashboardMetrics, MonthlyRevenueRow, TopService, ReporteCentro, ReporteTipo } from './reportService';
 import type { Settings } from './settingsService';
+
+/** Se evalúa al construir el frontend; en Docker se pasa como build arg. */
+export const usaApachePoi = import.meta.env.VITE_USE_APACHE_POI === 'true';
 
 /* =========================================================================
    Diseño profesional y ordenado para los PDF del módulo de Reportes.
@@ -610,4 +614,25 @@ export function exportCentroExcel(centro: ReporteCentro) {
   XLSX.utils.book_append_sheet(wb, ws, centro.titulo.replace(/[^\w\s-]/g, '').slice(0, 28) || 'Reporte');
 
   XLSX.writeFile(wb, safeFileName('reporte-' + centro.titulo, 'xlsx'));
+}
+
+/** Descarga el XLSX generado y autorizado por el backend con Apache POI. */
+export async function exportCentroExcelConApachePoi(tipo: ReporteTipo) {
+  const respuesta = await api.get('/reportes/centro/excel', {
+    params: { tipo },
+    responseType: 'blob',
+  });
+  const contentType = respuesta.headers['content-type'];
+  const archivo = new Blob([respuesta.data], {
+    type: typeof contentType === 'string'
+      ? contentType
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const enlace = document.createElement('a');
+  enlace.href = URL.createObjectURL(archivo);
+  enlace.download = `reporte-${tipo.toLowerCase()}.xlsx`;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(enlace.href);
 }

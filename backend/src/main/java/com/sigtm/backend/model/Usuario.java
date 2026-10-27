@@ -55,4 +55,7 @@ public class Usuario extends Auditable {
 
     @Column(name = "ultimo_acceso")
     private LocalDateTime lastLogin;
+
+    @Column(name = "version_token", nullable = false)
+    private int tokenVersion = 0;
 }

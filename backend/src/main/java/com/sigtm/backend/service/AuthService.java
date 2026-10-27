@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
@@ -66,7 +68,7 @@ public class AuthService {
         String token = HexFormat.of().formatHex(bytes);
 
         TokenResetContrasena tokenReset = TokenResetContrasena.builder()
-                .token(token)
+                .token(hashToken(token))
                 .user(usuario)
                 .expiryDate(LocalDateTime.now().plus(Duration.ofMinutes(tokenExpirationMinutes)))
                 .used(false)
@@ -92,7 +94,7 @@ public class AuthService {
      */
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        TokenResetContrasena tokenReset = tokenRepository.findByToken(token)
+        TokenResetContrasena tokenReset = tokenRepository.findByToken(hashToken(token))
                 .orElseThrow(() -> new RuntimeException("El enlace de recuperación no es válido."));
         if (!tokenReset.isValid()) {
             throw new RuntimeException("El enlace de recuperación ha expirado o ya fue utilizado.");
@@ -100,6 +102,7 @@ public class AuthService {
 
         Usuario usuario = tokenReset.getUser();
         usuario.setPassword(passwordEncoder.encode(newPassword));
+        usuario.setTokenVersion(usuario.getTokenVersion() + 1);
         usuarioRepository.save(usuario);
 
         tokenReset.setUsed(true);
@@ -112,5 +115,15 @@ public class AuthService {
                 "Contraseña restablecida para el usuario " + usuario.getUsername(), usuario.getUsername());
 
         log.info("Contraseña restablecida para usuario {}", usuario.getUsername());
+    }
+
+    private String hashToken(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 no disponible", e);
+        }
     }
 }

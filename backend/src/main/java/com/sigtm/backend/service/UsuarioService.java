@@ -57,8 +57,8 @@ public class UsuarioService {
     /**
      * Obtiene el perfil de un usuario con los datos visibles para el frontend.
      *
-     * <p>El perfil incluye el nombre de su rol y las fechas de alta y último acceso, pero
-     * nunca expone el correo ni la contraseña.</p>
+     * <p>El perfil incluye datos de contacto, el nombre de su rol y las fechas de alta y
+     * último acceso, pero nunca expone la contraseña.</p>
      *
      * @param userId identificador del usuario
      * @return los datos del perfil en formato {@code Map}
@@ -175,8 +175,8 @@ public class UsuarioService {
         if (solicitud.password() == null || solicitud.password().isBlank()) {
             throw new RuntimeException("La contraseña es obligatoria");
         }
-        if (solicitud.password().length() < 6) {
-            throw new RuntimeException("La contraseña debe tener al menos 6 caracteres");
+        if (solicitud.password().length() < 12) {
+            throw new RuntimeException("La contraseña debe tener al menos 12 caracteres");
         }
 
         String username = solicitud.username().trim();
@@ -258,10 +258,11 @@ public class UsuarioService {
             usuario.setRole(rol);
         }
         if (solicitud.newPassword() != null && !solicitud.newPassword().isBlank()) {
-            if (solicitud.newPassword().length() < 6) {
-                throw new RuntimeException("La contraseña debe tener al menos 6 caracteres");
+            if (solicitud.newPassword().length() < 12) {
+                throw new RuntimeException("La contraseña debe tener al menos 12 caracteres");
             }
             usuario.setPassword(passwordEncoder.encode(solicitud.newPassword()));
+            usuario.setTokenVersion(usuario.getTokenVersion() + 1);
         }
 
         Usuario guardado = usuarioRepository.save(usuario);
@@ -291,6 +292,9 @@ public class UsuarioService {
         }
 
         usuario.setActive(active);
+        if (!active) {
+            usuario.setTokenVersion(usuario.getTokenVersion() + 1);
+        }
         Usuario guardado = usuarioRepository.save(usuario);
         auditoriaService.registrar("STATUS", "USUARIO", guardado.getId(),
                 (active ? "Activación" : "Desactivación") + " del usuario " + guardado.getUsername());

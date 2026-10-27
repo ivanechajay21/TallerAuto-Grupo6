@@ -24,7 +24,6 @@ import java.util.Map;
  * los permisos propios ({@code /actual/permisos}) no exige permiso de módulo:
  * basta una sesión válida.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/usuarios")
 @RequiredArgsConstructor

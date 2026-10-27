@@ -1,5 +1,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
+ARG VITE_USE_APACHE_POI=false
+ENV VITE_USE_APACHE_POI=${VITE_USE_APACHE_POI}
 COPY package*.json ./
 RUN npm install
 COPY . .

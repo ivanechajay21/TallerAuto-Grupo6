@@ -1,6 +1,7 @@
 package com.sigtm.backend.security.jwt;
 
 import com.sigtm.backend.security.services.UserDetailsServiceImpl;
+import com.sigtm.backend.security.services.UserDetailsImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -59,7 +59,12 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                UserDetailsImpl userDetails = (UserDetailsImpl) userDetailsService.loadUserByUsername(username);
+                if (!jwtUtils.belongsToCurrentUser(jwt, userDetails)) {
+                    log.warn("JWT revocado o emitido para una versión de sesión anterior");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
@@ -68,9 +73,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("AuthTokenFilter: Successfully set authentication for user {}", username);
-            } else {
-                log.warn("AuthTokenFilter: JWT is null or invalid! jwt={}", jwt);
+                log.debug("JWT validado para el usuario {}", username);
+            } else if (jwt != null) {
+                log.warn("Se recibió un JWT inválido");
             }
         } catch (Exception e) {
             log.error("AuthTokenFilter: Cannot set user authentication: {}", e.getMessage(), e);
@@ -81,14 +86,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        log.info("AuthTokenFilter: Received Authorization header: {}", headerAuth);
-
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            log.info("AuthTokenFilter: Header starts with Bearer, extracting token");
             return headerAuth.substring(7);
         }
-
-        log.info("AuthTokenFilter: No valid Bearer token found in header");
         return null;
     }
 }

@@ -23,7 +23,6 @@ import java.util.Map;
  * {@code MI_TRABAJO:CAMBIAR_ESTADO}). El mecánico opera únicamente desde su
  * pantalla "Mi trabajo", sin el módulo Órdenes.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/ordenes-trabajo")
 @RequiredArgsConstructor

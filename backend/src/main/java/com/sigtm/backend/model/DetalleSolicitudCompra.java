@@ -1,0 +1,3 @@
+package com.sigtm.backend.model;
+import com.fasterxml.jackson.annotation.JsonIgnore; import jakarta.persistence.*; import lombok.*;
+@Entity @Table(name="detalles_solicitud_compra") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder public class DetalleSolicitudCompra { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="solicitud_id",nullable=false) @JsonIgnore private SolicitudCompra request; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="producto_id",nullable=false) private Producto product; @Column(nullable=false) private Integer quantity; }

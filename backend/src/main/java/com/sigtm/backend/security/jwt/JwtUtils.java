@@ -43,6 +43,7 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
+                .claim("tokenVersion", userPrincipal.getTokenVersion())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
@@ -86,5 +87,16 @@ public class JwtUtils {
         }
 
         return false;
+    }
+
+    public boolean belongsToCurrentUser(String token, UserDetailsImpl user) {
+        try {
+            Claims claims = Jwts.parserBuilder().setSigningKey(key()).build()
+                    .parseClaimsJws(token).getBody();
+            Integer tokenVersion = claims.get("tokenVersion", Integer.class);
+            return tokenVersion != null && tokenVersion == user.getTokenVersion();
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 }

@@ -5,7 +5,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/sigtm_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:sigtm_user}
-    password: ${DB_PASSWORD:sigtm_password}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -39,11 +39,11 @@ server:
 # JWT Configuration
 app:
   jwt:
-    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
   upload:
     dir: ${UPLOAD_DIR:./uploads}
@@ -51,3 +51,9 @@ app:
   reset-password:
     base-url: ${FRONTEND_URL:http://localhost:3000}
     token-expiration-minutes: ${RESET_TOKEN_EXPIRATION_MINUTES:30}
+
+  seed:
+    enabled: ${SEED_DATA:false}
+
+  export:
+    apache-poi-enabled: ${USE_APACHE_POI:false}
