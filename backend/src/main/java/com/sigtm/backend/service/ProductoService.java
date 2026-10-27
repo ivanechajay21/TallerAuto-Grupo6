@@ -257,6 +257,49 @@ public class ProductoService {
     }
 
     /**
+     * Registra la entrada de mercancía procedente de una recepción de compra.
+     * El producto se bloquea durante la operación para conservar la consistencia del stock
+     * cuando existen recepciones concurrentes o ajustes manuales.
+     */
+    @Transactional
+    public Producto registrarEntradaCompra(Long productId, Integer quantity, BigDecimal unitCost, String reference) {
+        if (quantity == null || quantity < 1) {
+            throw new IllegalArgumentException("La cantidad recibida debe ser mayor a 0");
+        }
+        if (unitCost == null || unitCost.signum() < 0) {
+            throw new IllegalArgumentException("El costo unitario no puede ser negativo");
+        }
+        Producto producto = productoRepository.findWithLockingById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+        Usuario usuario = usuarioActual();
+        if (usuario == null) {
+            throw new IllegalStateException("No se pudo identificar al usuario autenticado");
+        }
+        int disponible = producto.getCurrentStock() == null ? 0 : producto.getCurrentStock();
+        producto.setCurrentStock(disponible + quantity);
+        producto.setPurchasePrice(unitCost);
+        registrarMovimiento(producto, "IN", quantity, unitCost, reference, usuario);
+        Producto guardado = productoRepository.save(producto);
+        auditoriaService.registrar("MOVEMENT", "PRODUCTO", guardado.getId(),
+                "Entrada por compra x" + quantity + " (ref: " + reference + ") — " + guardado.getName());
+        return guardado;
+    }
+
+    @Transactional
+    public Producto registrarSalidaDevolucionCompra(Long productId, Integer quantity, BigDecimal unitCost, String reference) {
+        Producto producto = productoRepository.findWithLockingById(productId).orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
+        Usuario usuario = usuarioActual();
+        if (usuario == null) throw new IllegalStateException("No se pudo identificar al usuario autenticado");
+        int stock = producto.getCurrentStock() == null ? 0 : producto.getCurrentStock();
+        if (quantity == null || quantity < 1 || stock < quantity) throw new IllegalArgumentException("Stock insuficiente para registrar la devolución");
+        producto.setCurrentStock(stock - quantity);
+        registrarMovimiento(producto, "OUT", quantity, unitCost, reference, usuario);
+        Producto guardado = productoRepository.save(producto);
+        auditoriaService.registrar("MOVEMENT", "PRODUCTO", guardado.getId(), "Devolución a proveedor x" + quantity + " (ref: " + reference + ")");
+        return guardado;
+    }
+
+    /**
      * Lista los movimientos de inventario de un repuesto, del más reciente al más antiguo.
      *
      * @param productId identificador del producto

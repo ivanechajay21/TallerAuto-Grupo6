@@ -1,0 +1,9 @@
+package com.sigtm.backend.controller;
+import com.sigtm.backend.dto.*; import com.sigtm.backend.model.*; import com.sigtm.backend.service.ReposicionService; import jakarta.validation.Valid; import lombok.RequiredArgsConstructor; import org.springframework.http.ResponseEntity; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*; import java.util.*;
+@RestController @RequestMapping("/api/reposicion") @RequiredArgsConstructor public class ReposicionController { private final ReposicionService service;
+ @PostMapping("/solicitudes/{id}/convertir-orden") @PreAuthorize("hasAuthority('COMPRAS:CREAR')") public ResponseEntity<OrdenCompra> convertir(@PathVariable Long id,@RequestParam Long supplierId){return ResponseEntity.ok(service.convertirEnOrden(id,supplierId));}
+ @GetMapping("/solicitudes") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<List<SolicitudCompra>> listar(){return ResponseEntity.ok(service.listar());}
+ @GetMapping("/solicitudes/{id}/historial") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<?> historial(@PathVariable Long id){return ResponseEntity.ok(service.historial(id));}
+ @GetMapping("/sugerencias") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<List<Map<String,Object>>> sugerencias(){return ResponseEntity.ok(service.sugerencias());}
+ @PatchMapping("/solicitudes/{id}/estado") @PreAuthorize("hasAuthority('COMPRAS:APROBAR')") public ResponseEntity<SolicitudCompra> estado(@PathVariable Long id,@Valid @RequestBody CambiarEstadoSolicitudRequest r){return ResponseEntity.ok(service.cambiarEstado(id,r.status().toUpperCase(),r.comment()));}
+ @PostMapping("/solicitudes") @PreAuthorize("hasAuthority('COMPRAS:CREAR')") public ResponseEntity<SolicitudCompra> crear(@Valid @RequestBody CrearSolicitudCompraRequest r){return ResponseEntity.ok(service.crear(r));}}

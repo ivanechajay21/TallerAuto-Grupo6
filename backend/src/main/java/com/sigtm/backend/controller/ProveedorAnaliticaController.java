@@ -1,0 +1,8 @@
+package com.sigtm.backend.controller;
+import com.sigtm.backend.model.*; import com.sigtm.backend.service.ProveedorAnaliticaService; import jakarta.validation.Valid; import lombok.RequiredArgsConstructor; import org.springframework.http.ResponseEntity; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*; import java.util.*;
+@RestController @RequestMapping("/api/abastecimiento") @RequiredArgsConstructor
+public class ProveedorAnaliticaController { private final ProveedorAnaliticaService service;
+ @PutMapping("/proveedores/{supplierId}/productos/{productId}/precio") @PreAuthorize("hasAuthority('COMPRAS:APROBAR')") public ResponseEntity<PrecioProveedor> precio(@PathVariable Long supplierId,@PathVariable Long productId,@Valid @RequestBody PrecioProveedor p){return ResponseEntity.ok(service.guardarPrecio(supplierId,productId,p));}
+ @GetMapping("/productos/{productId}/ofertas") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<List<PrecioProveedor>> ofertas(@PathVariable Long productId){return ResponseEntity.ok(service.ofertas(productId));}
+ @PostMapping("/proveedores/{supplierId}/evaluaciones") @PreAuthorize("hasAuthority('COMPRAS:APROBAR')") public ResponseEntity<EvaluacionProveedor> evaluar(@PathVariable Long supplierId,@Valid @RequestBody EvaluacionProveedor e){return ResponseEntity.ok(service.evaluar(supplierId,e));}
+ @GetMapping("/proveedores/{supplierId}/evaluaciones") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<List<EvaluacionProveedor>> evaluaciones(@PathVariable Long supplierId){return ResponseEntity.ok(service.evaluaciones(supplierId));}}

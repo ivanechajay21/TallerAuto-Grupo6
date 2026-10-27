@@ -1,0 +1,1 @@
+package com.sigtm.backend.repository; import com.sigtm.backend.model.SolicitudCompra; import org.springframework.data.jpa.repository.JpaRepository; import java.util.List; public interface SolicitudCompraRepository extends JpaRepository<SolicitudCompra,Long>{ List<SolicitudCompra> findAllByOrderByRequestedAtDesc(); }
