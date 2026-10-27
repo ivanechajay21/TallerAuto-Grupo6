@@ -71,6 +71,7 @@ services:
     environment:
       CHOKIDAR_USEPOLLING: "true"
       VITE_USE_APACHE_POI: ${USE_APACHE_POI:-false}
+      VITE_PROXY_TARGET: http://backend:8080
     ports:
       - "5173:5173"
     volumes:
