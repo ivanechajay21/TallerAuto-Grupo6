@@ -18,7 +18,6 @@ import java.util.Map;
  * <p>No exigen permiso de módulo: cada operación trabaja siempre sobre las
  * notificaciones del usuario en sesión, de modo que basta con un token válido.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/notificaciones")
 @RequiredArgsConstructor

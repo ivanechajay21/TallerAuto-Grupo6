@@ -1,0 +1,3 @@
+package com.sigtm.backend.model;
+import jakarta.persistence.*; import lombok.*; import java.time.LocalDateTime; import java.util.*;
+@Entity @Table(name="solicitudes_compra") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder public class SolicitudCompra extends Auditable { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Column(nullable=false,unique=true) private String code; @Column(nullable=false) private LocalDateTime requestedAt; @Column(nullable=false,length=20) private String status; @Column(length=500) private String notes; @Builder.Default @OneToMany(mappedBy="request",cascade=CascadeType.ALL,orphanRemoval=true) private List<DetalleSolicitudCompra> items=new ArrayList<>(); }

@@ -1,0 +1,4 @@
+package com.sigtm.backend.model;
+import jakarta.persistence.*; import lombok.*; import java.time.LocalDateTime; import java.util.*;
+@Entity @Table(name="devoluciones_compra") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class DevolucionCompra extends Auditable { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Column(nullable=false,unique=true,length=40) private String number; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="orden_compra_id",nullable=false) private OrdenCompra purchaseOrder; @Column(nullable=false) private LocalDateTime returnedAt; @Column(nullable=false,length=500) private String reason; @Builder.Default @OneToMany(mappedBy="returnDocument",cascade=CascadeType.ALL,orphanRemoval=true) private List<DetalleDevolucionCompra> items=new ArrayList<>(); }

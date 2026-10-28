@@ -1,0 +1,4 @@
+package com.sigtm.backend.model;
+import jakarta.persistence.*; import lombok.*; import java.time.LocalDateTime;
+@Entity @Table(name="inspecciones_recepcion_compra") @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class InspeccionRecepcionCompra { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="recepcion_id",nullable=false) private RecepcionCompra receipt; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="producto_id",nullable=false) private Producto product; @Column(nullable=false,length=20) private String result; @Column(nullable=false) private Integer acceptedQuantity; @Column(nullable=false) private Integer rejectedQuantity; @Column(nullable=false) private LocalDateTime inspectedAt; @Column(length=500) private String observations; }

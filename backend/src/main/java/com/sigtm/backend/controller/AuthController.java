@@ -8,6 +8,7 @@ import com.sigtm.backend.security.jwt.JwtUtils;
 import com.sigtm.backend.security.services.UserDetailsImpl;
 import com.sigtm.backend.service.AuthService;
 import com.sigtm.backend.service.UsuarioService;
+import com.sigtm.backend.security.LoginAttemptService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,7 +32,6 @@ import java.util.stream.Collectors;
  * {@code /olvidar-contrasena} y {@code /restablecer-contrasena} se invocan sin
  * token, y solo el login deja la sesión establecida en el contexto de seguridad.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/autenticacion")
 @RequiredArgsConstructor
@@ -40,6 +41,7 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final AuthService authService;
     private final UsuarioService usuarioService;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * Autentica al usuario y devuelve el token JWT de sesión.
@@ -53,8 +55,16 @@ public class AuthController {
      */
     @PostMapping("/ingresar")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        loginAttemptService.checkLoginAllowed(loginRequest.getUsername());
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        } catch (AuthenticationException ex) {
+            loginAttemptService.recordLoginFailure(loginRequest.getUsername());
+            throw ex;
+        }
+        loginAttemptService.recordLoginSuccess(loginRequest.getUsername());
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
@@ -91,6 +101,7 @@ public class AuthController {
      */
     @PostMapping("/olvidar-contrasena")
     public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        loginAttemptService.recordResetRequest(request.email());
         authService.forgotPassword(request.email());
         return ResponseEntity.ok(Map.of(
                 "message", "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."));
@@ -113,19 +124,19 @@ public class AuthController {
     }
 
     /**
-     * Devuelve el perfil del usuario indicado.
+     * Devuelve el perfil del usuario autenticado.
      *
      * <p>No exige permiso de módulo: basta con una sesión válida, por lo que el
      * frontend lo usa para hidratar los datos de la sesión vigente. Un
-     * identificador inexistente produce 404.</p>
+     * se deriva del JWT, por lo que no acepta un identificador manipulable.</p>
      *
-     * @param id identificador del usuario cuyo perfil se consulta
      * @return el mapa con los datos del perfil (200)
      * @throws com.sigtm.backend.exception.ResourceNotFoundException si el usuario no existe
      */
-    @GetMapping("/perfil/{id}")
-    public ResponseEntity<?> me(@PathVariable Long id) {
-        return ResponseEntity.ok(usuarioService.obtenerPerfil(id));
+    @GetMapping("/perfil")
+    public ResponseEntity<?> me(Authentication authentication) {
+        UserDetailsImpl usuario = (UserDetailsImpl) authentication.getPrincipal();
+        return ResponseEntity.ok(usuarioService.obtenerPerfil(usuario.getId()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

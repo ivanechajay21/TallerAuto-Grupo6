@@ -20,7 +20,6 @@ import java.util.Map;
  * {@code CITAS:CAMBIAR_ESTADO}), administrados desde Roles y Permisos. Todas las
  * respuestas usan mapas con los datos del cliente y del vehículo resumidos.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/citas")
 @RequiredArgsConstructor

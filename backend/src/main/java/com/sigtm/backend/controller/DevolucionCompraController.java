@@ -1,0 +1,3 @@
+package com.sigtm.backend.controller;
+import com.sigtm.backend.model.DevolucionCompra; import com.sigtm.backend.service.CompraService; import lombok.RequiredArgsConstructor; import org.springframework.http.ResponseEntity; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*; import java.util.List;
+@RestController @RequestMapping("/api/compras") @RequiredArgsConstructor public class DevolucionCompraController {private final CompraService service; @GetMapping("/{id}/devoluciones") @PreAuthorize("hasAuthority('COMPRAS:VER')") public ResponseEntity<List<DevolucionCompra>> listar(@PathVariable Long id){return ResponseEntity.ok(service.devoluciones(id));}}

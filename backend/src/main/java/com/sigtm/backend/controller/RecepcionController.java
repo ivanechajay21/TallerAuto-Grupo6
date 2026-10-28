@@ -28,11 +28,12 @@ import java.util.Map;
  * consultar el detalle y las recepciones de un vehículo desde su pantalla de
  * trabajo con {@code MI_TRABAJO:VER}.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/recepciones")
 @RequiredArgsConstructor
 public class RecepcionController {
+
+    private static final int MAX_PHOTOS_PER_RECEPTION = 10;
 
     private final RecepcionService recepcionService;
     private final UsuarioRepository usuarioRepository;
@@ -105,6 +106,9 @@ public class RecepcionController {
     public ResponseEntity<?> crearRecepcion(
             @RequestPart("data") CrearRecepcionRequest data,
             @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+        if (photos != null && photos.size() > MAX_PHOTOS_PER_RECEPTION) {
+            throw new IllegalArgumentException("Se permiten como máximo 10 fotografías por recepción");
+        }
         var guardada = recepcionService.crearRecepcion(data, photos, idUsuarioActual());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(recepcionService.obtenerPorId(guardada.getId()));

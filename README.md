@@ -1,102 +1,96 @@
-# SIGTM — Sistema Integral de Gestión de Taller Mecánico
+# SIGTM — Sistema Integral de Gestión para Talleres Mecánicos
 
-Aplicación **full-stack** para digitalizar la operación de un taller mecánico: recepción de vehículos, órdenes de trabajo, inventario de repuestos, facturación, agenda de citas, reportes y control de accesos por rol.
+Aplicación web para administrar la operación de un taller mecánico: clientes y vehículos, citas, recepción, órdenes de trabajo, inventario, facturación, reportes, usuarios y permisos.
 
-- **Backend:** Java 21 + Spring Boot (API REST + JWT) + MySQL
-- **Frontend:** React + TypeScript + Vite + Tailwind CSS
-- **Despliegue:** Docker Compose (MySQL, phpMyAdmin, backend, frontend)
+## Componentes
 
----
+| Componente | Tecnología | Responsabilidad |
+|---|---|---|
+| `frontend/` | React 19, TypeScript, Vite y Tailwind CSS | Interfaz SPA, control de acceso por permiso, paneles, formularios, exportación de PDF y Excel. |
+| `backend/` | Java 21, Spring Boot, Spring Security, JPA y JWT | API REST, reglas de negocio, autenticación/autorización, auditoría, correo y carga de archivos. |
+| MySQL 8 | Base de datos | Persistencia de usuarios, operación del taller, catálogos y auditoría. |
+| `docs/` y `API.md` | Markdown | Arquitectura, métricas del proyecto y referencia detallada de la API. |
 
-## Equipo
+La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El frontend envía el JWT en el encabezado `Authorization: Bearer <token>` y el backend autoriza cada operación mediante permisos.
 
-| # | Integrante | Usuario de GitHub | Rol en el proyecto |
-|---|---|---|---|
-| 1 | _Nombre y apellido_ | [@usuario1](https://github.com/usuario1) | Líder de proyecto · Backend y seguridad |
-| 2 | _Nombre y apellido_ | [@usuario2](https://github.com/usuario2) | Backend · Servicios y API REST |
-| 3 | _Nombre y apellido_ | [@usuario3](https://github.com/usuario3) | Frontend · Interfaz y experiencia de usuario |
-| 4 | _Nombre y apellido_ | [@usuario4](https://github.com/usuario4) | QA · Pruebas, CI y documentación |
-| 5 | _Nombre y apellido_ | [@usuario5](https://github.com/usuario5) | DevOps · Docker, base de datos y despliegue |
+## Funcionalidades
 
-> ✏️ **Pendiente para la entrega:** reemplazar los nombres y usuarios de ejemplo por los reales. Los roles son una propuesta; ajústenlos según el trabajo de cada integrante.
-
----
-
-## Características
-
-| Módulo | Descripción |
-|---|---|
-| **Autenticación** | Login con **JWT**, recuperación de contraseña por correo (SMTP) |
-| **Recepción** | Recepción digital del vehículo con inspección de daños y fotografías |
-| **Órdenes de Trabajo** | Apertura, asignación de ítems (mano de obra/repuestos), estados |
-| **Mis Trabajos** | Vista del mecánico: ítems asignados y cambio de estado |
-| **Clientes y Vehículos** | Fichas, historial clínico por unidad |
-| **Agenda y Citas** | Programación por fecha/bahía |
-| **Inventario** | Repuestos, stock, movimientos (entradas/salidas) y alertas de stock bajo |
-| **Facturación** | Facturas por orden de trabajo y registro de pagos |
-| **Reportes** | Dashboard e informes exportables a **PDF** y **Excel** |
-| **Usuarios / Roles** | CRUD de usuarios y matriz de **Roles y Permisos** |
-| **Auditoría** | Bitácora de acciones del sistema |
-| **Configuración** | Datos del taller, catálogos y correo saliente |
-
----
-
-## Tecnologías
-
-**Backend**
-- Java 21, Spring Boot 4, Spring Web, Spring Data JPA, Spring Security
-- **JWT** (`jjwt`), contraseñas con **BCrypt**
-- Bean Validation, Lombok, MySQL 8
-- Maven (wrapper incluido)
-
-**Frontend**
-- React 19, TypeScript, Vite
-- Tailwind CSS v4, lucide-react (iconos), recharts (gráficos)
-- axios, jsPDF + jspdf-autotable (PDF), xlsx (Excel)
-- Vitest + Testing Library (pruebas)
-
----
+- Gestión de clientes, vehículos e historial.
+- Citas, recepción de vehículos y emisión de órdenes de trabajo.
+- Asignación y seguimiento de trabajos de mecánicos.
+- Inventario, movimientos de existencias y catálogo de servicios.
+- Facturación, dashboard y centro de reportes con exportación a PDF/Excel.
+- Usuarios, roles, permisos, configuración y auditoría.
+- Recuperación de contraseña por SMTP y carga de imágenes/documentos de recepción.
 
 ## Requisitos
 
-- **Docker** y **Docker Compose** (recomendado), **o**
-- **JDK 21+**, **Node.js 20+**, **MySQL 8** (para desarrollo local)
+La forma recomendada de ejecutar el sistema requiere únicamente:
 
----
+- Docker Engine con Docker Compose v2.
 
-## Puesta en marcha con Docker
+Para desarrollo sin contenedores se necesita:
 
-1. **Clona** el repositorio:
+- Java 21.
+- Node.js 22 (o una versión compatible con las dependencias del frontend) y npm.
+- MySQL 8.
+
+## Entorno de desarrollo
+
+### Desarrollo con Docker
+
+1. Crea el archivo de variables a partir del ejemplo y define un secreto JWT de desarrollo:
+
    ```bash
-   git clone https://github.com/ivanechajay21/TallerAuto-Grupo6.git
-   cd TALLERAUTO
+   cp .env.example .env
+   openssl rand -base64 48
    ```
 
-2. **Crea tu archivo de entorno** a partir de la plantilla:
-   ```bash
-   cp .env.example .env      # Windows: copy .env.example .env
-   ```
-   Ajusta al menos `JWT_SECRET` y, si usarás recuperación de contraseña, las `MAIL_*`.
+   Copia la salida del segundo comando en `JWT_SECRET` dentro de `.env`. Para correo Gmail usa una *App Password*. No publiques este archivo ni uses secretos reales de producción.
 
-3. **Levanta los servicios**:
+2. Construye e inicia todos los servicios:
+
    ```bash
-   docker compose up -d --build
+   docker compose up --build
    ```
 
-4. **Accede**:
+   Para generar el Excel del Centro de Reportes en el backend con Apache POI,
+   configura `USE_APACHE_POI=true` antes de construir. Con `false` (valor por
+   defecto), se conserva la exportación local con `xlsx`. Como Vite incorpora
+   esta variable al compilar, reconstruye el frontend al cambiarla.
+
+3. Abre los servicios:
 
    | Servicio | URL |
    |---|---|
-   | Frontend | http://localhost:3000 |
-   | Backend (API) | http://localhost:8080/api |
+   | Aplicación web | http://localhost:3000 |
+   | API REST | http://localhost:8080/api |
    | phpMyAdmin | http://localhost:8081 |
    | MySQL | `localhost:3306` |
 
-> En el primer arranque el backend **siembra** roles, permisos, usuarios y datos de ejemplo.
+### Desarrollo con recarga automática
 
----
+Para desarrollar dentro de Docker con Vite y recarga automática del frontend, usa la configuración específica de desarrollo. Mantiene volúmenes y nombres de contenedor distintos al entorno integrado estándar:
 
-## Credenciales de prueba (seed)
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+| Servicio | URL |
+|---|---|
+| Frontend Vite (HMR) | http://localhost:5173 |
+| API REST | http://localhost:8080/api |
+| phpMyAdmin | http://localhost:8081 |
+
+El código de `frontend/` y `backend/` se monta en los contenedores. Los cambios del frontend se reflejan automáticamente; para cambios Java, reinicia el servicio backend con `docker compose -f docker-compose.dev.yml restart backend`.
+
+Para detener este entorno sin borrar sus datos:
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+Con `SEED_DATA=true`, el primer arranque crea esquema, roles, permisos y datos de muestra. Las siguientes cuentas son exclusivas de desarrollo:
 
 | Usuario | Contraseña | Rol |
 |---|---|---|
@@ -106,206 +100,169 @@ Aplicación **full-stack** para digitalizar la operación de un taller mecánico
 | `mecanico` | `mecanico123` | Mecánico |
 | `almacen` | `almacen123` | Almacenero |
 
-> ⚠️ Son credenciales **de desarrollo**. Cámbialas en producción.
+Los contenedores usan los valores definidos en `.env`. phpMyAdmin se conecta al servidor `mysql`; usa las credenciales configuradas por `ROOT_PASSWORD`, `MYSQL_USER` y `MYSQL_PASSWORD`.
 
----
+Para detener los servicios conservando la base de datos y los archivos cargados:
 
-## Desarrollo local (sin Docker)
-
-**Backend**
 ```bash
-cd backend
-./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
+docker compose down
 ```
 
-**Frontend** (el servidor de Vite hace proxy de `/api` → `http://localhost:8080`)
+Para reiniciar completamente el entorno local, incluidos volúmenes de MySQL y archivos subidos:
+
+```bash
+docker compose down -v
+```
+
+> Este último comando elimina datos locales de forma irreversible.
+
+### Desarrollo local sin contenedores
+
+### 1. Base de datos
+
+Inicia MySQL 8 y crea una base y usuario equivalentes a los valores por defecto:
+
+```sql
+CREATE DATABASE sigtm_db;
+CREATE USER 'sigtm_user'@'localhost' IDENTIFIED BY 'sigtm_password';
+GRANT ALL PRIVILEGES ON sigtm_db.* TO 'sigtm_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+También puedes iniciar solo la base de datos con Docker:
+
+```bash
+docker compose up mysql phpmyadmin
+```
+
+### 2. Backend
+
+Desde otra terminal:
+
+```bash
+cd backend
+sh ./mvnw spring-boot:run
+```
+
+La API quedará disponible en `http://localhost:8080`. La configuración está en `backend/src/main/resources/application.yml` y admite, entre otras, estas variables de entorno:
+
+```bash
+export DB_URL='jdbc:mysql://localhost:3306/sigtm_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true'
+export DB_USERNAME='sigtm_user'
+export DB_PASSWORD='sigtm_password'
+export JWT_SECRET="$(openssl rand -base64 48)"
+export MAIL_USERNAME='tu.correo@gmail.com'
+export MAIL_PASSWORD='tu_app_password'
+export FRONTEND_URL='http://localhost:5173'
+export SEED_DATA='true'
+export USE_APACHE_POI='true' # opcional: exportación XLSX con Apache POI
+```
+
+### 3. Frontend
+
+En otra terminal:
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
----
+Vite mostrará normalmente la aplicación en `http://localhost:5173`. En desarrollo, el proxy de Vite envía `/api` y `/uploads` al backend en el puerto 8080.
 
-## Pruebas
+Si el API se encuentra en otro host o puerto, crea `frontend/.env.local` con una URL accesible desde el navegador:
 
-**Backend** (JUnit 5 + Mockito; sin base de datos):
 ```bash
+VITE_API_URL=http://localhost:8080/api
+```
+
+## Pruebas y compilación
+
+```bash
+# Backend: pruebas y empaquetado
 cd backend
-./mvnw -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test
-```
-| Suite | Capa | Pruebas |
-|---|---|---:|
-| `ProductoServiceTest` | Servicio (inventario) | 12 |
-| `RolServiceTest` | Servicio (roles + salvaguarda del ADMIN) | 13 |
-| `ProductoControllerTest` | Web (HTTP + permisos) | 10 |
-| `RolControllerTest` | Web (roles + rol ADMIN) | 11 |
-| `OrdenTrabajoControllerTest` | Web (ítems + asignación de mecánico) | 5 |
-| **Total** | | **51** |
+sh ./mvnw test
+sh ./mvnw package
 
-**Frontend** (Vitest + Testing Library):
-```bash
-cd frontend
+# Frontend: pruebas, análisis y compilación de producción
+cd ../frontend
+npm ci
 npm test
+npm run lint
+npm run build
 ```
-| Suite | Pruebas |
-|---|---:|
-| `Pagination.test.tsx` | 5 |
-| `usePagination.test.ts` | 4 |
-| `Login.test.tsx` | 3 |
-| `Reports.test.tsx` | 4 |
-| `Inventory.test.tsx` | 3 |
-| `Vehicles.test.tsx` | 4 |
-| **Total** | **23** |
 
-> **74 pruebas** en total (51 backend + 23 frontend).
+La compilación de producción del frontend se publica con Nginx en la imagen Docker. Nginx también redirige `/api` y `/uploads` al contenedor del backend, por lo que no se requiere configurar `VITE_API_URL` al utilizar `docker compose`.
 
----
+## Entorno de producción
 
-## Estructura del proyecto
+No utilices el `.env` de desarrollo ni las cuentas de demostración. Crea las variables en el gestor de secretos de la plataforma o en un archivo protegido fuera del repositorio:
 
+```dotenv
+ROOT_PASSWORD=<contraseña-robusta-y-unica>
+MYSQL_DATABASE=sigtm_db
+MYSQL_USER=sigtm_app
+MYSQL_PASSWORD=<contraseña-robusta-y-unica>
+JWT_SECRET=<salida-de-openssl-rand--base64-48>
+MAIL_HOST=<servidor-smtp>
+MAIL_PORT=587
+MAIL_USERNAME=<cuenta-smtp>
+MAIL_PASSWORD=<secreto-smtp>
+FRONTEND_URL=https://app.ejemplo.com
+CORS_ALLOWED_ORIGINS=https://app.ejemplo.com
+SEED_DATA=false
+USE_APACHE_POI=true
 ```
-TALLERAUTO/
-├── backend/                 # API REST (Spring Boot)
-│   └── src/main/java/com/sigtm/backend/
+
+Pasos de despliegue:
+
+1. Configura DNS y un proxy inverso/TLS delante del contenedor frontend; expón HTTPS y redirige HTTP a HTTPS.
+2. Provisiona MySQL con backups, usuario de privilegios mínimos y una red privada; no expongas el puerto 3306 públicamente.
+3. Define las variables anteriores mediante secretos del proveedor. Genera `JWT_SECRET` con `openssl rand -base64 48` y nunca reutilices uno de desarrollo.
+4. Construye e inicia: `docker compose up -d --build`.
+5. Verifica que `SEED_DATA=false`, crea el administrador inicial mediante un proceso controlado y elimina cualquier cuenta de demostración existente.
+6. Expón públicamente solo el proxy HTTPS. Los puertos de MySQL, phpMyAdmin y el backend deben permanecer internos o protegidos por red/VPN.
+
+`USE_APACHE_POI` debe tener el mismo valor en backend y frontend. Con Docker
+Compose se propaga automáticamente; tras cambiarlo ejecuta
+`docker compose up -d --build frontend backend`. El endpoint de Apache POI requiere el permiso
+`REPORTES:EXPORTAR` y obtiene las filas directamente de la base de datos.
+
+En producción, configura HSTS en el proxy TLS y establece una política de copias de seguridad, monitorización de logs sin secretos y actualización periódica de imágenes y dependencias.
+
+## Estructura
+
+```text
+.
+├── backend/                 # API Spring Boot
+│   └── src/main/java/.../
 │       ├── controller/      # Endpoints REST
 │       ├── service/         # Lógica de negocio
-│       ├── repository/      # Acceso a datos (Spring Data JPA)
-│       ├── model/           # Entidades
-│       ├── dto/             # Objetos de transferencia
-│       ├── security/        # JWT, filtros y configuración de seguridad
-│       ├── config/          # Configuración y datos iniciales
-│       └── exception/       # Manejo global de errores
-├── frontend/                # SPA (React + Vite)
+│       ├── repository/      # Acceso a datos JPA
+│       ├── model/           # Entidades persistentes
+│       ├── security/        # JWT y configuración de seguridad
+│       └── config/          # Siembra de datos y configuración
+├── frontend/                # SPA React/Vite
 │   └── src/
-│       ├── pages/           # Pantallas
-│       ├── components/      # Componentes (UI compartida, Sidebar, Header…)
-│       ├── services/        # Cliente HTTP y servicios por módulo
-│       ├── context/         # Estado global (permisos, ajustes, tema)
-│       └── hooks/           # Hooks reutilizables
-├── docs/                    # Documentación técnica
-├── docker-compose.yml
-└── .env.example
+│       ├── pages/           # Vistas por módulo
+│       ├── components/      # Componentes reutilizables
+│       ├── services/        # Clientes de la API y exportaciones
+│       └── context/         # Tema, permisos y configuración
+├── docs/                    # Documentación técnica y estadísticas
+├── API.md                   # Endpoints, permisos y consumidores
+├── docker-compose.yml       # Entorno integrado
+└── .env.example             # Variables de ejemplo
 ```
 
----
+## Documentación adicional
 
-## Flujo de trabajo con Git (equipo de 5)
+- [Referencia de la API](API.md): rutas, métodos, permisos y servicios que las consumen.
+- [Seguridad de la aplicación](README_seguridad.md): controles, evidencias y verificaciones operativas.
+- [Arquitectura y evaluación de prácticas](docs/ARQUITECTURA.md).
+- [Estadísticas de código](docs/ESTADISTICAS.md).
 
-> Guía completa en [`CONTRIBUTING.md`](./CONTRIBUTING.md). Plantilla de PR en [`.github/pull_request_template.md`](./.github/pull_request_template.md).
+## Consideraciones de seguridad
 
-### Reglas de oro
-
-1. **`main` es intocable**: solo código estable y probado. **Nadie hace push directo**.
-2. Cada funcionalidad o corrección se desarrolla en **su propia rama**.
-3. Todo cambio entra por **Pull Request** con **al menos 1 revisión** de otro integrante.
-4. Commits **pequeños, frecuentes y descriptivos**.
-5. Antes de subir cambios: `git pull --rebase origin main`.
-6. **Nunca** subir `.env`, contraseñas, tokens ni `node_modules/`.
-
-### 1) Clonar el repositorio (una sola vez)
-
-```bash
-git clone https://github.com/ivanechajay21/TallerAuto-Grupo6.git
-cd TALLERAUTO
-git config user.name "Tu Nombre"
-git config user.email "tu@correo.com"
-```
-
-### 2) Crear la rama de trabajo
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b feature/login-jwt
-```
-
-| Prefijo | Uso | Ejemplo |
-|---|---|---|
-| `feature/` | Nueva funcionalidad | `feature/reportes-pdf` |
-| `fix/` | Corrección de error | `fix/stock-negativo` |
-| `docs/` | Documentación | `docs/manual-usuario` |
-| `test/` | Pruebas | `test/ordenes-service` |
-| `refactor/` | Refactorización | `refactor/reporte-service` |
-
-### 3) Guardar cambios (commits frecuentes)
-
-```bash
-git add .
-git commit -m "feat: agregar exportación de reportes a PDF"
-```
-
-| Tipo | Cuándo usarlo |
-|---|---|
-| `feat:` | Nueva funcionalidad |
-| `fix:` | Corrección de un error |
-| `docs:` | Documentación |
-| `test:` | Pruebas |
-| `refactor:` | Reestructuración sin cambiar comportamiento |
-| `chore:` | Configuración, dependencias, mantenimiento |
-
-**Mal:** `git commit -m "avances"` · `git commit -m "cambios"` · `git commit -m "subida"`
-**Bien:** `git commit -m "fix: validar stock antes de confirmar una salida"`
-
-### 4) Subir la rama y abrir el Pull Request
-
-```bash
-git push -u origin feature/login-jwt
-```
-
-En GitHub: **Compare & pull request** → describir el cambio → asignar revisor → esperar aprobación y CI en verde.
-
-### 5) Mantener la rama actualizada
-
-```bash
-git fetch origin
-git rebase origin/main
-# resolver conflictos si aparecen
-git push --force-with-lease
-```
-
-### 6) Después del merge
-
-```bash
-git checkout main
-git pull origin main
-git branch -d feature/login-jwt
-```
-
-### 7) Rutina diaria recomendada
-
-```bash
-git checkout main
-git pull origin main
-git checkout -b feature/mi-tarea
-# ... trabajar ...
-git add .
-git commit -m "feat: descripción concreta del cambio"
-git push -u origin feature/mi-tarea
-```
-
----
-
-## Seguridad
-
-- **JWT** sin estado; los permisos se **recargan desde la base de datos** en cada petición.
-- **Contraseñas con BCrypt** (nunca en texto plano).
-- Autorización por permiso `MODULO:ACCION` (`@PreAuthorize`) en los endpoints; las operaciones sobre roles quedan reservadas al rol **ADMIN**.
-- El rol **Administrador conserva permisos críticos** que no se pueden quitar (evita que el sistema se quede sin acceso).
-- Validación de entrada (`@Valid`) y manejo global de excepciones.
-
-> El archivo `.env` **no** se versiona. Usa `.env.example` como plantilla.
-
----
-
-## Documentación
-
-- [`API.md`](./API.md) — API REST y funciones del frontend (endpoints por módulo y permisos).
-- [`docs/ARQUITECTURA.md`](./docs/ARQUITECTURA.md) — evaluación de arquitectura (MVC, DAO, SOLID, seguridad) y pruebas.
-- [`docs/ESTADISTICAS.md`](./docs/ESTADISTICAS.md) — estadísticas de código por lenguaje y paquete.
-
----
-
-## Licencia
-
-Uso educativo / demostrativo. Ajusta esta sección según la licencia que quieras aplicar.
+- No uses en producción las credenciales iniciales ni secretos generados para desarrollo.
+- Define `CORS_ALLOWED_ORIGINS` con dominios explícitos; no se permite el comodín global.
+- Mantén las credenciales SMTP y los secretos fuera del repositorio (por ejemplo, en `.env` o en un gestor de secretos).

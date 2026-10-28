@@ -16,7 +16,6 @@ import java.util.List;
  * etc.) desde la pantalla Configuración: la lectura exige
  * {@code CONFIGURACION:VER} y la escritura {@code CONFIGURACION:EDITAR}.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/configuracion/catalogo")
 @RequiredArgsConstructor

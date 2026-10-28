@@ -22,7 +22,6 @@ import java.util.List;
  * también se permite al mecánico con {@code MI_TRABAJO:CAMBIAR_ESTADO}. La
  * eliminación es lógica: desactiva el producto y conserva sus movimientos.</p>
  */
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/productos")
 @RequiredArgsConstructor

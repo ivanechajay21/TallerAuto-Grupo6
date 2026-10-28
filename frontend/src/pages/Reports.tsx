@@ -14,7 +14,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { getReporteCentro } from '../services/reportService';
 import type { ReporteCentro, ReporteTipo } from '../services/reportService';
-import { exportCentroPdf, exportCentroExcel } from '../services/exportService';
+import { exportCentroPdf, exportCentroExcel, exportCentroExcelConApachePoi, usaApachePoi } from '../services/exportService';
 import { usePermissions } from '../context/PermissionContext';
 import { useShopSettings } from '../context/SettingsContext';
 import { getCurrentUser } from '../services/authService';
@@ -134,6 +134,8 @@ export default function Reports() {
     try {
       if (type === 'pdf') {
         exportCentroPdf({ ...centro, filas }, settings, getCurrentUser());
+      } else if (usaApachePoi) {
+        await exportCentroExcelConApachePoi(centro.tipo);
       } else {
         exportCentroExcel({ ...centro, filas });
       }
