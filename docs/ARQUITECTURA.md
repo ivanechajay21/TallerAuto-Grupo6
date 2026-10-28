@@ -55,8 +55,9 @@
   - **autorización `@PreAuthorize`**: petición sin `PRODUCTOS:VER` (o con permiso equivocado) → **403**.
   - *(Requiere el módulo de test `spring-boot-starter-webmvc-test`, añadido al `pom.xml`.)*
 - `backend/src/test/java/com/sigtm/backend/controller/RolControllerTest.java` — **11 pruebas de la capa web** centradas en la **autorización por rol**: la consulta exige `ROLES:VER`; **todas las escrituras (crear/actualizar/eliminar roles y asignar permisos) exigen rol `ADMIN`** → un usuario con `ROLE_MANAGER` recibe **403**; también se cubren `200`, `204` y `404`.
+- `backend/src/test/java/com/sigtm/backend/controller/OrdenTrabajoControllerTest.java` — **5 pruebas de la capa web** (`@WebMvcTest` + MockMvc) para los ítems de una orden: agregar exige `ITEMS:CREAR`, actualizar `ITEMS:EDITAR` y eliminar `ITEMS:ELIMINAR`; se cubre la asignación de un mecánico mediante `mechanicId` y el rechazo con **403** cuando falta el permiso.
 - **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3) y `Vehicles.test.tsx` (4) → **23 pruebas**. Se añadió el script `npm test`, `vitest.config.ts` y los tests se excluyen del `tsc` de producción.
-- Resultado: **backend 46** (`mvn -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest test`) **+ frontend 23** (`npm test`) = **69 pruebas**, todas en verde.
+- Resultado: **backend 51** (`mvn -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test`) **+ frontend 23** (`npm test`) = **74 pruebas**, todas en verde.
 
 **Cobertura por capa**
 | Capa | Suite | Pruebas |
@@ -65,13 +66,14 @@
 | Backend — servicio (seguridad de roles) | `RolServiceTest` | 13 |
 | Backend — web (inventario + permisos) | `ProductoControllerTest` | 10 |
 | Backend — web (roles + rol ADMIN) | `RolControllerTest` | 11 |
+| Backend — web (ítems + asignación) | `OrdenTrabajoControllerTest` | 5 |
 | Frontend — componente UI | `Pagination.test.tsx` | 5 |
 | Frontend — hook | `usePagination.test.ts` | 4 |
 | Frontend — página (acceso) | `Login.test.tsx` | 3 |
 | Frontend — página (reportes) | `Reports.test.tsx` | 4 |
 | Frontend — página (inventario) | `Inventory.test.tsx` | 3 |
 | Frontend — página (vehículos) | `Vehicles.test.tsx` | 4 |
-| **Total** | | **69** |
+| **Total** | | **74** |
 
 **Conclusión:** el proyecto **no aplicaba TDD**; con esta suite se **inicia** la cobertura del backend (aún lejos de TDD completo).
 
@@ -119,6 +121,6 @@
 - **DAO** vía Spring Data JPA ✅.
 - **Seguridad** fuerte (JWT, BCrypt, permisos por endpoint) ✅.
 - **SOLID** aplicado de forma pragmática ⚠️.
-- **TDD** era el punto débil ❌; ahora hay **69 pruebas** (46 backend + 23 frontend) que cubren servicio, capa web y UI.
+- **TDD** era el punto débil ❌; ahora hay **74 pruebas** (51 backend + 23 frontend) que cubren servicio, capa web y UI.
 
 Documentos relacionados: [`API.md`](../API.md) · [`ESTADISTICAS.md`](./ESTADISTICAS.md)

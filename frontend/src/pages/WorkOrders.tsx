@@ -36,6 +36,7 @@ import { getAllProducts } from '../services/productService';
 import type { Product } from '../services/productService';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/Toast';
+import { usePermissions } from '../context/PermissionContext';
 import usePagination from '../hooks/usePagination';
 import Pagination from '../components/ui/Pagination';
 
@@ -123,6 +124,13 @@ interface ItemForm {
 export default function WorkOrders() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { hasPermission } = usePermissions();
+  const canCreateItem = hasPermission('ITEMS:CREAR');
+  const canEditItem = hasPermission('ITEMS:EDITAR');
+  const canDeleteItem = hasPermission('ITEMS:ELIMINAR');
+  const canChangeItemStatus = hasPermission('ITEMS:CAMBIAR_ESTADO');
+  const canChangeOrderStatus = hasPermission('ORDENES:CAMBIAR_ESTADO');
+  const canEditOrder = hasPermission('ORDENES:EDITAR');
   const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -595,6 +603,7 @@ export default function WorkOrders() {
                   </button>
                 </div>
 
+                {canChangeOrderStatus && (
                 <div className="mb-4 flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => advance(selected)}
@@ -615,13 +624,14 @@ export default function WorkOrders() {
                     </button>
                   )}
                 </div>
+                )}
 
                 {/* Detalles y diagnóstico editable */}
                 <section className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
                   <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                     <ClipboardList size={15} className="text-blue-600" /> Detalles y diagnóstico
                   </h3>
-                  {edit && (
+                  {edit && canEditOrder && (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <label className="block text-xs font-medium text-slate-600 dark:text-slate-300">
                         Prioridad
@@ -698,6 +708,12 @@ export default function WorkOrders() {
                       </label>
                     </div>
                   )}
+                  {!canEditOrder && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      No tienes permiso para editar esta orden.
+                    </p>
+                  )}
+                  {canEditOrder && (
                   <div className="mt-3 flex justify-end">
                     <button
                       onClick={saveOrder}
@@ -708,6 +724,7 @@ export default function WorkOrders() {
                       Guardar cambios
                     </button>
                   </div>
+                  )}
                 </section>
 
                 {/* Ítems de trabajo */}
@@ -724,7 +741,9 @@ export default function WorkOrders() {
                   <ul className="space-y-2">
                     {(selected.items || []).length === 0 && (
                       <p className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400 dark:border-slate-700 dark:text-slate-500">
-                        Sin ítems asignados todavía. Agrega el primer trabajo a la orden.
+                        {canCreateItem
+                          ? 'Sin ítems asignados todavía. Agrega el primer trabajo a la orden.'
+                          : 'Sin ítems asignados todavía.'}
                       </p>
                     )}
                     {(selected.items || []).map((item) => (
@@ -767,7 +786,7 @@ export default function WorkOrders() {
                             {ITEM_STATUS_META[item.status]?.label || item.status}
                           </span>
                           <div className="flex shrink-0 gap-1">
-                            {item.status === 'PENDING' && (
+                            {canChangeItemStatus && item.status === 'PENDING' && (
                               <button
                                 onClick={() => changeItemStatus(item, 'IN_PROGRESS')}
                                 disabled={itemBusy === item.id}
@@ -776,7 +795,7 @@ export default function WorkOrders() {
                                 <span className="flex items-center gap-1">{itemBusy === item.id && <Spinner />}Iniciar</span>
                               </button>
                             )}
-                            {item.status === 'IN_PROGRESS' && (
+                            {canChangeItemStatus && item.status === 'IN_PROGRESS' && (
                               <>
                                 <button
                                   onClick={() => changeItemStatus(item, 'PENDING')}
@@ -794,22 +813,26 @@ export default function WorkOrders() {
                                 </button>
                               </>
                             )}
-                            <button
-                              onClick={() => startEditingItem(item)}
-                              disabled={itemBusy === item.id}
-                              title="Editar ítem"
-                              className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-blue-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
-                            >
-                              <Pencil size={13} />
-                            </button>
-                            <button
-                              onClick={() => deleteItem(item)}
-                              disabled={deletingItem === item.id}
-                              title="Eliminar ítem"
-                              className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
-                            >
-                              {deletingItem === item.id ? <Spinner /> : <Trash2 size={13} />}
-                            </button>
+                            {canEditItem && (
+                              <button
+                                onClick={() => startEditingItem(item)}
+                                disabled={itemBusy === item.id}
+                                title="Editar ítem"
+                                className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-blue-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                            )}
+                            {canDeleteItem && (
+                              <button
+                                onClick={() => deleteItem(item)}
+                                disabled={deletingItem === item.id}
+                                title="Eliminar ítem"
+                                className="rounded-md bg-slate-100 p-1.5 text-slate-500 transition hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
+                              >
+                                {deletingItem === item.id ? <Spinner /> : <Trash2 size={13} />}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </li>
@@ -817,6 +840,7 @@ export default function WorkOrders() {
                   </ul>
 
                   {/* Agregar / editar ítem */}
+                  {(canCreateItem || (editingItem && canEditItem)) && (
                   <div className="mt-4 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                     <div className="mb-2 flex items-center justify-between">
                       <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
@@ -906,6 +930,7 @@ export default function WorkOrders() {
                       </button>
                     </div>
                   </div>
+                  )}
                 </section>
               </>
             )}

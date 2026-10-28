@@ -185,7 +185,7 @@ Ejecuta las pruebas localmente:
 ```bash
 # Backend (sin base de datos)
 cd backend
-./mvnw -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest test
+./mvnw -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test
 
 # Frontend
 cd frontend
