@@ -1,8 +1,16 @@
 import api from './api';
 
+export type DocumentType = 'FACTURA' | 'BOLETA';
+export type CustomerDocumentType = 'DNI' | 'RUC' | 'OTRO';
+
 export interface Invoice {
   id: number;
   invoiceNumber: string;
+  documentType?: DocumentType;
+  documentTypeLabel?: string;
+  series?: string;
+  correlative?: number;
+  customerDocumentType?: CustomerDocumentType;
   issueDate: string;
   subtotal: number;
   taxAmount: number;
@@ -25,8 +33,13 @@ export const getInvoiceById = async (id: number): Promise<Invoice> => {
   return response.data;
 };
 
-export const generateInvoice = async (workOrderId: number): Promise<Invoice> => {
-  const response = await api.post(`/facturas/orden-trabajo/${workOrderId}`);
+export const generateInvoice = async (
+  workOrderId: number,
+  documentType: DocumentType = 'FACTURA'
+): Promise<Invoice> => {
+  const response = await api.post(`/facturas/orden-trabajo/${workOrderId}`, {
+    tipoComprobante: documentType,
+  });
   return response.data;
 };
 

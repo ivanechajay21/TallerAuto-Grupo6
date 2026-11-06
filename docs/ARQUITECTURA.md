@@ -1,6 +1,6 @@
 # Evaluación de arquitectura y buenas prácticas — SIGTM
 
-> **Fecha:** 5 de octubre de 2026
+> **Fecha:** 5 de noviembre de 2026
 > Evaluación basada en el código fuente del proyecto (backend Spring Boot + frontend React).
 
 ## Veredicto rápido
@@ -9,7 +9,7 @@
 |---|---|:--:|---|
 | **MVC** | ✅ | Alto | Adaptado a API REST + SPA (no MVC clásico con vistas server-side) |
 | **DAO** | ✅ | Alto | Repositorios Spring Data JPA (patrón DAO/Repository) |
-| **TDD** | ❌ → ⚠️ | Bajo | No había pruebas; ya se añadió una primera suite |
+| **TDD** | ❌ → ✅ | Medio | 133 pruebas backend + 26 frontend, incluyendo integración con MySQL real |
 | **SOLID** | ⚠️ | Medio | Aplicado de forma pragmática, no estricta |
 | **Seguridad** | ✅ | Alto | JWT + BCrypt + autorización por permiso por endpoint |
 
@@ -18,7 +18,7 @@
 ## 1) MVC — ✅ (variante API + SPA)
 
 **Evidencia**
-- `controller/` (17) → `service/` (19) → `repository/` (19) → `model/` (22).
+- `controller/` (36) → `service/` (37) → `repository/` (40) → `model/` (48 entidades y enums).
 - Los controladores reciben la petición HTTP, delegan en el servicio y devuelven **JSON** (DTOs/mapas).
 - La **Vista (V)** es el **SPA** en `frontend/` (React), que consume la API. No hay vistas server-side.
 
@@ -27,7 +27,7 @@
 ## 2) DAO — ✅
 
 **Evidencia**
-- 19 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById`).
+- 40 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById` y `CorrelativoComprobanteRepository`).
 - El acceso a datos está **separado** de la lógica (`service`) y del API (`controller`).
 
 **Conclusión:** el patrón **DAO/Repository** está bien implementado mediante Spring Data JPA.
@@ -56,8 +56,11 @@
   - *(Requiere el módulo de test `spring-boot-starter-webmvc-test`, añadido al `pom.xml`.)*
 - `backend/src/test/java/com/sigtm/backend/controller/RolControllerTest.java` — **11 pruebas de la capa web** centradas en la **autorización por rol**: la consulta exige `ROLES:VER`; **todas las escrituras (crear/actualizar/eliminar roles y asignar permisos) exigen rol `ADMIN`** → un usuario con `ROLE_MANAGER` recibe **403**; también se cubren `200`, `204` y `404`.
 - `backend/src/test/java/com/sigtm/backend/controller/OrdenTrabajoControllerTest.java` — **5 pruebas de la capa web** (`@WebMvcTest` + MockMvc) para los ítems de una orden: agregar exige `ITEMS:CREAR`, actualizar `ITEMS:EDITAR` y eliminar `ITEMS:ELIMINAR`; se cubre la asignación de un mecánico mediante `mechanicId` y el rechazo con **403** cuando falta el permiso.
-- **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3) y `Vehicles.test.tsx` (4) → **23 pruebas**. Se añadió el script `npm test`, `vitest.config.ts` y los tests se excluyen del `tsc` de producción.
-- Resultado: **backend 51** (`mvn -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test`) **+ frontend 23** (`npm test`) = **74 pruebas**, todas en verde.
+- `backend/src/test/java/com/sigtm/backend/service/FacturaServiceTest.java` — **11 pruebas** de emisión y cobro: IGV y redondeo, factura con RUC, boleta con DNI, series `F001`/`B001`, rechazo por estado/ítems/precio/documento, pago único y método de pago válido.
+- `backend/src/test/java/com/sigtm/backend/controller/FacturaControllerTest.java` — **12 pruebas de la capa web** para el contrato de comprobantes: `200`, `400` (parámetro faltante/id inválido), `403`, `404`, `409`, elección Factura/Boleta y no filtración de SQL en errores internos.
+- `backend/src/test/java/com/sigtm/backend/service/FacturaIntegrationTest.java` — **3 pruebas de integración** con MySQL efímero (Testcontainers): persistencia de `fecha_emision`, serie/correlativo, boleta con DNI y rechazo de factura sin RUC.
+- **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3), `Vehicles.test.tsx` (4) y `Billing.test.tsx` (3) → **26 pruebas**.
+- Resultado: **backend 133** (`./mvnw test`, incluye Testcontainers) **+ frontend 26** (`npm test`) = **159 pruebas**, todas en verde.
 
 **Cobertura por capa**
 | Capa | Suite | Pruebas |
@@ -121,6 +124,6 @@
 - **DAO** vía Spring Data JPA ✅.
 - **Seguridad** fuerte (JWT, BCrypt, permisos por endpoint) ✅.
 - **SOLID** aplicado de forma pragmática ⚠️.
-- **TDD** era el punto débil ❌; ahora hay **74 pruebas** (51 backend + 23 frontend) que cubren servicio, capa web y UI.
+- **TDD** era el punto débil ❌; ahora hay **159 pruebas** (133 backend + 26 frontend) que cubren servicio, persistencia real con Testcontainers, capa web y UI.
 
 Documentos relacionados: [`API.md`](../API.md) · [`ESTADISTICAS.md`](./ESTADISTICAS.md)

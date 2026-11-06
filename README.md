@@ -19,7 +19,7 @@ La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El
 - Citas, recepción de vehículos y emisión de órdenes de trabajo.
 - Asignación y seguimiento de trabajos de mecánicos.
 - Inventario, movimientos de existencias y catálogo de servicios.
-- Facturación, dashboard y centro de reportes con exportación a PDF/Excel.
+- Facturación con emisión de factura o boleta, series y correlativos propios, control de pagos y dashboard con centro de reportes exportable a PDF/Excel.
 - Usuarios, roles, permisos, configuración y auditoría.
 - Recuperación de contraseña por SMTP y carga de imágenes/documentos de recepción.
 
@@ -193,6 +193,8 @@ npm run build
 ```
 
 La compilación de producción del frontend se publica con Nginx en la imagen Docker. Nginx también redirige `/api` y `/uploads` al contenedor del backend, por lo que no se requiere configurar `VITE_API_URL` al utilizar `docker compose`.
+
+Las pruebas de contexto del backend usan **Testcontainers** para levantar un MySQL temporal. Por eso `./mvnw test` requiere que Docker Desktop esté en ejecución, pero ya no depende de un MySQL local ni de configurar `DB_PASSWORD` o `JWT_SECRET` a mano.
 
 ## Entorno de producción
 
