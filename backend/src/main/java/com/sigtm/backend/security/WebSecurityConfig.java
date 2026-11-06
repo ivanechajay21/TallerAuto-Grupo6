@@ -90,6 +90,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/autenticacion/perfil").authenticated()
                         .requestMatchers("/api/autenticacion/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 );

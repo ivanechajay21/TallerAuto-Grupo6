@@ -196,6 +196,8 @@ La compilación de producción del frontend se publica con Nginx en la imagen Do
 
 Las pruebas de contexto del backend usan **Testcontainers** para levantar un MySQL temporal. Por eso `./mvnw test` requiere que Docker Desktop esté en ejecución, pero ya no depende de un MySQL local ni de configurar `DB_PASSWORD` o `JWT_SECRET` a mano.
 
+La cobertura se genera con JaCoCo en CI (`./mvnw -Djacoco.skip=false test`) y el reporte HTML queda en `backend/target/site/jacoco/index.html`. El endpoint público `GET /actuator/health` permite que Docker y un balanceador verifiquen el estado del backend sin exponer detalles internos.
+
 ## Entorno de producción
 
 No utilices el `.env` de desarrollo ni las cuentas de demostración. Crea las variables en el gestor de secretos de la plataforma o en un archivo protegido fuera del repositorio:

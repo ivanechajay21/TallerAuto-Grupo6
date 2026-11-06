@@ -36,6 +36,26 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  health:
+    db:
+      enabled: true
+    mail:
+      # El SMTP es opcional; un credencial ausente no debe tumbar el healthcheck.
+      enabled: false
+
+info:
+  app:
+    name: SIGTM Backend
+    description: API del taller mecanico SIGTM
+
 # JWT Configuration
 app:
   jwt:

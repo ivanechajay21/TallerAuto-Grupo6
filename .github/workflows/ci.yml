@@ -26,7 +26,14 @@ jobs:
         run: |
           sed -i 's/\r$//' mvnw
           chmod +x mvnw
-          ./mvnw test
+          ./mvnw -Djacoco.skip=false test
+
+      - name: Publicar cobertura JaCoCo
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco
+          if-no-files-found: warn
 
   frontend:
     name: Frontend (Node 22)
@@ -49,3 +56,7 @@ jobs:
       - name: Pruebas del frontend
         working-directory: frontend
         run: npm test
+
+      - name: Compilar frontend
+        working-directory: frontend
+        run: npm run build
