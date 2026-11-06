@@ -24,6 +24,7 @@ import org.testcontainers.mysql.MySQLContainer;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -89,6 +90,11 @@ class FacturaIntegrationTest {
         assertEquals(new BigDecimal("18.00"), factura.getTaxAmount());
         assertEquals(new BigDecimal("118.00"), factura.getTotalAmount());
         assertEquals("FACTURA", result.get("documentType"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) result.get("items");
+        assertEquals(1, items.size());
+        assertEquals("Servicio de prueba", items.get(0).get("description"));
+        assertEquals(new BigDecimal("100.00"), items.get(0).get("unitPrice"));
     }
 
     @Test

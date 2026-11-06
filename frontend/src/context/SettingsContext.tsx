@@ -47,3 +47,11 @@ export function useShopSettings() {
   if (!ctx) throw new Error('useShopSettings debe usarse dentro de SettingsProvider');
   return ctx;
 }
+
+/**
+ * Variante tolerante para pantallas que también deben renderizar en pruebas o
+ * fuera del proveedor (por ejemplo, una vista previa aislada del comprobante).
+ */
+export function useOptionalShopSettings() {
+  return useContext(SettingsContext);
+}

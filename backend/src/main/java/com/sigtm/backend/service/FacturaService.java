@@ -18,7 +18,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -259,12 +261,50 @@ public class FacturaService {
             if (ot.getCustomer() != null) {
                 m.put("customer", ot.getCustomer().getFirstName() + " " + ot.getCustomer().getLastName());
                 m.put("documentNumber", ot.getCustomer().getDocumentNumber());
+                m.put("customerPhone", ot.getCustomer().getPhone());
             }
             if (ot.getVehicle() != null) {
                 m.put("vehicle", ot.getVehicle().getPlate() + " · " + ot.getVehicle().getBrand() + " " + ot.getVehicle().getModel());
+                m.put("vehiclePlate", ot.getVehicle().getPlate());
+                m.put("vehicleBrand", ot.getVehicle().getBrand());
+                m.put("vehicleModel", ot.getVehicle().getModel());
+                m.put("vehicleYear", ot.getVehicle().getYear());
             }
+            m.put("items", itemsDe(ot));
             m.put("workOrder", datosOrden);
         }
         return m;
+    }
+
+    private List<Map<String, Object>> itemsDe(OrdenTrabajo orden) {
+        List<Map<String, Object>> lineas = new ArrayList<>();
+        if (orden.getItems() == null) {
+            return lineas;
+        }
+        for (ItemOrdenTrabajo item : orden.getItems()) {
+            BigDecimal precio = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
+            int cantidad = item.getQuantity() != null ? item.getQuantity() : 1;
+            Map<String, Object> linea = new LinkedHashMap<>();
+            linea.put("id", item.getId());
+            linea.put("description", descripcionItem(item));
+            linea.put("quantity", cantidad);
+            linea.put("unitPrice", precio);
+            linea.put("lineTotal", precio.multiply(BigDecimal.valueOf(cantidad)));
+            lineas.add(linea);
+        }
+        return lineas;
+    }
+
+    private String descripcionItem(ItemOrdenTrabajo item) {
+        if (item.getDescription() != null && !item.getDescription().isBlank()) {
+            return item.getDescription();
+        }
+        if (item.getServiceCatalog() != null && item.getServiceCatalog().getName() != null) {
+            return item.getServiceCatalog().getName();
+        }
+        if (item.getProduct() != null && item.getProduct().getName() != null) {
+            return item.getProduct().getName();
+        }
+        return "Servicio de taller";
     }
 }

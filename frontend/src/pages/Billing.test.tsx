@@ -30,7 +30,11 @@ const factura: Awaited<ReturnType<typeof getAllInvoices>>[number] = {
   status: 'PENDING',
   customer: 'Empresa Prueba SAC',
   documentNumber: '20123456789',
+  customerPhone: '999 111 222',
   vehicle: 'ABC-123 · Toyota Corolla',
+  items: [
+    { id: 1, description: 'Mantenimiento preventivo', quantity: 1, unitPrice: 100, lineTotal: 100 },
+  ],
   workOrder: { id: 5, orderNumber: 'OT-0005' },
 };
 
@@ -82,6 +86,7 @@ describe('Billing (facturación)', () => {
     expect(screen.getAllByText('ANULADA').length).toBeGreaterThan(0);
     expect(screen.getByText(/DNI: 74125896/)).toBeInTheDocument();
     expect(screen.getAllByText('B001-00000002').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Mantenimiento preventivo').length).toBeGreaterThan(0);
   });
 
   it('emite una factura con RUC para una orden finalizada', async () => {

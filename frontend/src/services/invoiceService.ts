@@ -3,6 +3,14 @@ import api from './api';
 export type DocumentType = 'FACTURA' | 'BOLETA';
 export type CustomerDocumentType = 'DNI' | 'RUC' | 'OTRO';
 
+export interface InvoiceItem {
+  id?: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
 export interface Invoice {
   id: number;
   invoiceNumber: string;
@@ -19,7 +27,13 @@ export interface Invoice {
   paymentMethod?: string;
   customer?: string;
   documentNumber?: string;
+  customerPhone?: string;
   vehicle?: string;
+  vehiclePlate?: string;
+  vehicleBrand?: string;
+  vehicleModel?: string;
+  vehicleYear?: number;
+  items?: InvoiceItem[];
   workOrder?: { id: number; orderNumber: string };
 }
 
