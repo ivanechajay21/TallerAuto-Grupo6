@@ -9,7 +9,7 @@
 |---|---|:--:|---|
 | **MVC** | ✅ | Alto | Adaptado a API REST + SPA (no MVC clásico con vistas server-side) |
 | **DAO** | ✅ | Alto | Repositorios Spring Data JPA (patrón DAO/Repository) |
-| **TDD** | ❌ → ✅ | Medio | 133 pruebas backend + 26 frontend, incluyendo integración con MySQL real |
+| **TDD** | ❌ → ✅ | Medio | 141 pruebas backend + 26 frontend, incluyendo integración con MySQL real |
 | **SOLID** | ⚠️ | Medio | Aplicado de forma pragmática, no estricta |
 | **Seguridad** | ✅ | Alto | JWT + BCrypt + autorización por permiso por endpoint |
 
@@ -59,8 +59,10 @@
 - `backend/src/test/java/com/sigtm/backend/service/FacturaServiceTest.java` — **11 pruebas** de emisión y cobro: IGV y redondeo, factura con RUC, boleta con DNI, series `F001`/`B001`, rechazo por estado/ítems/precio/documento, pago único y método de pago válido.
 - `backend/src/test/java/com/sigtm/backend/controller/FacturaControllerTest.java` — **12 pruebas de la capa web** para el contrato de comprobantes: `200`, `400` (parámetro faltante/id inválido), `403`, `404`, `409`, elección Factura/Boleta y no filtración de SQL en errores internos.
 - `backend/src/test/java/com/sigtm/backend/service/FacturaIntegrationTest.java` — **3 pruebas de integración** con MySQL efímero (Testcontainers): persistencia de `fecha_emision`, serie/correlativo, boleta con DNI y rechazo de factura sin RUC.
+- `backend/src/test/java/com/sigtm/backend/service/UsuarioServiceTest.java` — **6 pruebas** contra la escalada de privilegios: un no administrador no puede asignarse `ROLE_ADMIN`, crear administradores, modificar a un administrador ni desactivarlo; también se cubre la autodesactivación.
+- `backend/src/test/java/com/sigtm/backend/controller/AuthControllerSecurityTest.java` — **2 pruebas con los filtros reales de Spring Security**: `/api/autenticacion/perfil` devuelve **401** sin token y **200** con una sesión autenticada.
 - **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3), `Vehicles.test.tsx` (4) y `Billing.test.tsx` (3) → **26 pruebas**.
-- Resultado: **backend 133** (`./mvnw test`, incluye Testcontainers) **+ frontend 26** (`npm test`) = **159 pruebas**, todas en verde.
+- Resultado: **backend 141** (`./mvnw test`, incluye Testcontainers) **+ frontend 26** (`npm test`) = **167 pruebas**, todas en verde.
 
 **Cobertura por capa**
 | Capa | Suite | Pruebas |
@@ -98,8 +100,9 @@
 - **JWT** (`jjwt`) con sesión **STATELESS** y `AuthTokenFilter` que **recarga los permisos desde BD** en cada petición.
 - **Contraseñas cifradas** con `BCryptPasswordEncoder` (nunca en texto plano).
 - **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en ~76 endpoints; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
-- **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados (`/api/autenticacion/**`, `/uploads/**`, `/error`).
-- Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler`.
+- **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados a login/recuperación (`/api/autenticacion/ingresar`, `/olvidar-contrasena`, `/restablecer-contrasena`), `/uploads/**` y `/error`; `/api/autenticacion/perfil` exige sesión.
+- **Anti-escalada de privilegios**: `UsuarioService` impide que un no administrador cree o asigne `ROLE_ADMIN`, modifique a un administrador o lo desactive.
+- Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler` que no filtra SQL ni mensajes internos.
 
 **Observaciones / riesgos**
 - El CORS por defecto es `*` (`app.cors.allowed-origins`) → **restringir orígenes en producción**.
@@ -124,6 +127,6 @@
 - **DAO** vía Spring Data JPA ✅.
 - **Seguridad** fuerte (JWT, BCrypt, permisos por endpoint) ✅.
 - **SOLID** aplicado de forma pragmática ⚠️.
-- **TDD** era el punto débil ❌; ahora hay **159 pruebas** (133 backend + 26 frontend) que cubren servicio, persistencia real con Testcontainers, capa web y UI.
+- **TDD** era el punto débil ❌; ahora hay **167 pruebas** (141 backend + 26 frontend) que cubren servicio, persistencia real con Testcontainers, seguridad con filtros reales, capa web y UI.
 
 Documentos relacionados: [`API.md`](../API.md) · [`ESTADISTICAS.md`](./ESTADISTICAS.md)

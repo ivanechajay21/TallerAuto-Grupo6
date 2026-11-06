@@ -87,6 +87,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> 
                     auth.dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/autenticacion/perfil").authenticated()
                         .requestMatchers("/api/autenticacion/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/error").permitAll()

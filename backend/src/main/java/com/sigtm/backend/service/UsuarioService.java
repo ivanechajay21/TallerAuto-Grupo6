@@ -145,7 +145,7 @@ public class UsuarioService {
      * Crea una nueva cuenta de usuario.
      *
      * <p>Nombre, apellidos, usuario, correo, rol y contraseña son obligatorios, y la
-     * contraseña debe tener al menos 6 caracteres; se almacena codificada. El nombre de
+     * contraseña debe tener al menos 12 caracteres; se almacena codificada. El nombre de
      * usuario y el correo deben ser únicos. Crear un usuario con rol {@code ROLE_ADMIN}
      * queda reservado a quien ya sea administrador. La creación se registra en la
      * auditoría.</p>
@@ -158,25 +158,25 @@ public class UsuarioService {
     @Transactional
     public Map<String, Object> crearUsuario(CrearUsuarioRequest solicitud, Long currentUserId) {
         if (solicitud.name() == null || solicitud.name().isBlank()) {
-            throw new RuntimeException("El nombre es obligatorio");
+            throw new IllegalArgumentException("El nombre es obligatorio");
         }
         if (solicitud.lastName() == null || solicitud.lastName().isBlank()) {
-            throw new RuntimeException("Los apellidos son obligatorios");
+            throw new IllegalArgumentException("Los apellidos son obligatorios");
         }
         if (solicitud.username() == null || solicitud.username().isBlank()) {
-            throw new RuntimeException("El nombre de usuario es obligatorio");
+            throw new IllegalArgumentException("El nombre de usuario es obligatorio");
         }
         if (solicitud.email() == null || solicitud.email().isBlank()) {
-            throw new RuntimeException("El correo es obligatorio");
+            throw new IllegalArgumentException("El correo es obligatorio");
         }
         if (solicitud.roleName() == null || solicitud.roleName().isBlank()) {
-            throw new RuntimeException("El rol es obligatorio");
+            throw new IllegalArgumentException("El rol es obligatorio");
         }
         if (solicitud.password() == null || solicitud.password().isBlank()) {
-            throw new RuntimeException("La contraseña es obligatoria");
+            throw new IllegalArgumentException("La contraseña es obligatoria");
         }
         if (solicitud.password().length() < 12) {
-            throw new RuntimeException("La contraseña debe tener al menos 12 caracteres");
+            throw new IllegalArgumentException("La contraseña debe tener al menos 12 caracteres");
         }
 
         String username = solicitud.username().trim();
@@ -189,14 +189,10 @@ public class UsuarioService {
         }
 
         Rol rol = rolRepository.findByName(solicitud.roleName())
-                .orElseThrow(() -> new RuntimeException("Rol no válido"));
+                .orElseThrow(() -> new IllegalArgumentException("Rol no válido"));
 
-        if ("ROLE_ADMIN".equals(rol.getName())) {
-            Usuario creador = currentUserId == null ? null : usuarioRepository.findById(currentUserId).orElse(null);
-            String creatorRole = creador != null && creador.getRole() != null ? creador.getRole().getName() : null;
-            if (!"ROLE_ADMIN".equals(creatorRole)) {
-                throw new RuntimeException("Solo un administrador puede crear usuarios con rol Administrador");
-            }
+        if (esRolAdministrador(rol) && !esAdministrador(currentUserId)) {
+            throw new IllegalArgumentException("Solo un administrador puede crear usuarios con rol Administrador");
         }
 
         Usuario usuario = Usuario.builder()
@@ -220,8 +216,9 @@ public class UsuarioService {
      * Actualiza los datos de una cuenta de usuario.
      *
      * <p>Cada campo se modifica solo si llega informado; el correo debe seguir siendo
-     * único y la nueva contraseña, si se indica, debe tener al menos 6 caracteres y se
-     * guarda codificada. La operación se registra en la auditoría.</p>
+     * único y la nueva contraseña, si se indica, debe tener al menos 12 caracteres y se
+     * guarda codificada. Solo un administrador puede asignar el rol {@code ROLE_ADMIN}
+     * o modificar a otro administrador. La operación se registra en la auditoría.</p>
      *
      * @param id            identificador del usuario
      * @param solicitud     datos a actualizar
@@ -234,6 +231,10 @@ public class UsuarioService {
     public Map<String, Object> actualizarUsuario(Long id, ActualizarUsuarioRequest solicitud, Long currentUserId) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        if (esRolAdministrador(usuario.getRole()) && !esAdministrador(currentUserId)) {
+            throw new IllegalArgumentException("Solo un administrador puede modificar a otro administrador");
+        }
 
         if (solicitud.name() != null && !solicitud.name().isBlank()) {
             usuario.setName(solicitud.name().trim());
@@ -254,12 +255,15 @@ public class UsuarioService {
         }
         if (solicitud.roleName() != null && !solicitud.roleName().isBlank()) {
             Rol rol = rolRepository.findByName(solicitud.roleName())
-                    .orElseThrow(() -> new RuntimeException("Rol no válido"));
+                    .orElseThrow(() -> new IllegalArgumentException("Rol no válido"));
+            if (esRolAdministrador(rol) && !esAdministrador(currentUserId)) {
+                throw new IllegalArgumentException("Solo un administrador puede asignar el rol Administrador");
+            }
             usuario.setRole(rol);
         }
         if (solicitud.newPassword() != null && !solicitud.newPassword().isBlank()) {
             if (solicitud.newPassword().length() < 12) {
-                throw new RuntimeException("La contraseña debe tener al menos 12 caracteres");
+                throw new IllegalArgumentException("La contraseña debe tener al menos 12 caracteres");
             }
             usuario.setPassword(passwordEncoder.encode(solicitud.newPassword()));
             usuario.setTokenVersion(usuario.getTokenVersion() + 1);
@@ -273,8 +277,9 @@ public class UsuarioService {
     /**
      * Activa o desactiva una cuenta de usuario.
      *
-     * <p>Nadie puede desactivar su propia cuenta. El cambio de estado se registra en la
-     * auditoría con la acción {@code STATUS}.</p>
+     * <p>Nadie puede desactivar su propia cuenta y solo un administrador puede cambiar
+     * el estado de otro administrador. El cambio se registra en la auditoría con la
+     * acción {@code STATUS}.</p>
      *
      * @param id            identificador del usuario
      * @param active        {@code true} para activar, {@code false} para desactivar
@@ -288,7 +293,10 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         if (!active && id.equals(currentUserId)) {
-            throw new RuntimeException("No puedes desactivar tu propia cuenta");
+            throw new IllegalArgumentException("No puedes desactivar tu propia cuenta");
+        }
+        if (esRolAdministrador(usuario.getRole()) && !esAdministrador(currentUserId)) {
+            throw new IllegalArgumentException("Solo un administrador puede cambiar el estado de otro administrador");
         }
 
         usuario.setActive(active);
@@ -299,5 +307,19 @@ public class UsuarioService {
         auditoriaService.registrar("STATUS", "USUARIO", guardado.getId(),
                 (active ? "Activación" : "Desactivación") + " del usuario " + guardado.getUsername());
         return obtenerPerfil(guardado.getId());
+    }
+
+    private boolean esAdministrador(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        return usuarioRepository.findById(userId)
+                .map(Usuario::getRole)
+                .map(this::esRolAdministrador)
+                .orElse(false);
+    }
+
+    private boolean esRolAdministrador(Rol rol) {
+        return rol != null && "ROLE_ADMIN".equals(rol.getName());
     }
 }

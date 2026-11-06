@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -126,14 +127,14 @@ public class AuthController {
     /**
      * Devuelve el perfil del usuario autenticado.
      *
-     * <p>No exige permiso de módulo: basta con una sesión válida, por lo que el
-     * frontend lo usa para hidratar los datos de la sesión vigente. Un
+     * <p>No exige permiso de módulo, pero sí una sesión válida: el identificador
      * se deriva del JWT, por lo que no acepta un identificador manipulable.</p>
      *
      * @return el mapa con los datos del perfil (200)
      * @throws com.sigtm.backend.exception.ResourceNotFoundException si el usuario no existe
      */
     @GetMapping("/perfil")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> me(Authentication authentication) {
         UserDetailsImpl usuario = (UserDetailsImpl) authentication.getPrincipal();
         return ResponseEntity.ok(usuarioService.obtenerPerfil(usuario.getId()));
