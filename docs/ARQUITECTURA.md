@@ -18,7 +18,7 @@
 ## 1) MVC — ✅ (variante API + SPA)
 
 **Evidencia**
-- `controller/` (36) → `service/` (37) → `repository/` (40) → `model/` (48 entidades y enums).
+- `controller/` (36) → `service/` (38) → `repository/` (41) → `model/` (51 entidades y enums).
 - Los controladores reciben la petición HTTP, delegan en el servicio y devuelven **JSON** (DTOs/mapas).
 - La **Vista (V)** es el **SPA** en `frontend/` (React), que consume la API. No hay vistas server-side.
 
@@ -27,7 +27,7 @@
 ## 2) DAO — ✅
 
 **Evidencia**
-- 40 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById` y `CorrelativoComprobanteRepository`).
+- 41 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById` y `CorrelativoComprobanteRepository`).
 - El acceso a datos está **separado** de la lógica (`service`) y del API (`controller`).
 
 **Conclusión:** el patrón **DAO/Repository** está bien implementado mediante Spring Data JPA.
@@ -100,7 +100,7 @@
 **Evidencia** (`WebSecurityConfig` + paquete `security/`)
 - **JWT** (`jjwt`) con sesión **STATELESS** y `AuthTokenFilter` que **recarga los permisos desde BD** en cada petición.
 - **Contraseñas cifradas** con `BCryptPasswordEncoder` (nunca en texto plano).
-- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en ~76 endpoints; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
+- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 134 de los 143 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
 - **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados a login/recuperación (`/api/autenticacion/ingresar`, `/olvidar-contrasena`, `/restablecer-contrasena`), `/uploads/**`, `/actuator/health` y `/error`; `/api/autenticacion/perfil` exige sesión.
 - **Anti-escalada de privilegios**: `UsuarioService` impide que un no administrador cree o asigne `ROLE_ADMIN`, modifique a un administrador o lo desactive.
 - Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler` que no filtra SQL ni mensajes internos.
