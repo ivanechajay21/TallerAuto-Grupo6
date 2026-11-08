@@ -2,9 +2,11 @@ package com.sigtm.backend.service;
 
 import com.sigtm.backend.dto.CrearSolicitudCompraRequest;
 import com.sigtm.backend.exception.ResourceNotFoundException;
+import com.sigtm.backend.model.PoliticaReposicion;
 import com.sigtm.backend.model.Producto;
 import com.sigtm.backend.model.SolicitudCompra;
 import com.sigtm.backend.repository.ProductoRepository;
+import com.sigtm.backend.repository.PoliticaReposicionRepository;
 import com.sigtm.backend.repository.HistorialSolicitudCompraRepository;
 import com.sigtm.backend.repository.SolicitudCompraRepository;
 import org.junit.jupiter.api.Test;
@@ -26,11 +28,13 @@ class ReposicionServiceTest {
     @Mock private ProductoRepository productoRepository;
     @Mock private SolicitudCompraRepository solicitudRepository;
     @Mock private HistorialSolicitudCompraRepository historialRepository;
+    @Mock private PoliticaReposicionRepository politicaRepository;
     @Mock private AuditoriaService auditoriaService;
     @Mock private CompraService compraService;
 
     private ReposicionService service() {
-        return new ReposicionService(productoRepository, solicitudRepository, historialRepository, auditoriaService, compraService);
+        return new ReposicionService(productoRepository, solicitudRepository, historialRepository,
+                politicaRepository, auditoriaService, compraService);
     }
 
     @Test
@@ -44,6 +48,22 @@ class ReposicionServiceTest {
         assertEquals(1, sugerencias.size());
         assertEquals(1L, sugerencias.getFirst().get("productId"));
         assertEquals(8, sugerencias.getFirst().get("suggestedQuantity"));
+    }
+
+    @Test
+    void aplicaPoliticaDeReposicionConLoteYStockObjetivo() {
+        Producto producto = producto(4L, "ACE-04", 4, 2);
+        PoliticaReposicion policy = PoliticaReposicion.builder()
+                .product(producto).reorderPoint(10).minimumLot(5).targetStock(20).leadTimeDays(3).active(true).build();
+        when(productoRepository.findByActiveTrue()).thenReturn(List.of(producto));
+        when(politicaRepository.findByProductId(4L)).thenReturn(Optional.of(policy));
+
+        var sugerencias = service().sugerencias();
+
+        assertEquals(1, sugerencias.size());
+        assertEquals(20, sugerencias.getFirst().get("suggestedQuantity"));
+        assertEquals(true, sugerencias.getFirst().get("policyApplied"));
+        assertEquals(3, sugerencias.getFirst().get("leadTimeDays"));
     }
 
     @Test

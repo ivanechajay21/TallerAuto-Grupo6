@@ -2,6 +2,7 @@ package com.sigtm.backend.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 /**
@@ -18,13 +19,13 @@ public class PoliticaReposicion extends Auditable {
     private Producto product;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "proveedor_preferido_id")
     private Proveedor preferredSupplier;
-    @Min(0) @Column(name = "punto_reorden", nullable = false)
+    @NotNull @Min(0) @Column(name = "punto_reorden", nullable = false)
     private Integer reorderPoint;
-    @Min(1) @Column(name = "lote_minimo", nullable = false)
+    @NotNull @Min(1) @Column(name = "lote_minimo", nullable = false)
     private Integer minimumLot;
-    @Min(1) @Column(name = "stock_objetivo", nullable = false)
+    @NotNull @Min(1) @Column(name = "stock_objetivo", nullable = false)
     private Integer targetStock;
-    @Min(0) @Column(name = "plazo_entrega_dias", nullable = false)
+    @NotNull @Min(0) @Column(name = "plazo_entrega_dias", nullable = false)
     private Integer leadTimeDays;
     @Builder.Default @Column(name = "activa", nullable = false)
     private Boolean active = true;

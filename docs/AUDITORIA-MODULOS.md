@@ -5,6 +5,8 @@
 > **Tipo:** auditoría de solo lectura; no se modificó código de producción.
 >
 > **Actualización 7/11/2026:** la Fase 1 de estabilización ya está implementada. Los siete endpoints que devolvían 500 ahora responden correctamente y entregan DTOs. Ver [`FASE1-COMPRAS.md`](./FASE1-COMPRAS.md).
+>
+> **Actualización 8/11/2026:** la Fase 2 ya está implementada: aprobaciones multinivel, contratos editables y reactivables, política de reposición, ranking de proveedores y facturación parcial/anulación. Ver [`FASE2-COMPRAS.md`](./FASE2-COMPRAS.md).
 
 ## Veredicto
 

@@ -9,7 +9,7 @@
 |---|---|:--:|---|
 | **MVC** | ✅ | Alto | Adaptado a API REST + SPA (no MVC clásico con vistas server-side) |
 | **DAO** | ✅ | Alto | Repositorios Spring Data JPA (patrón DAO/Repository) |
-| **TDD** | ❌ → ✅ | Medio | 152 pruebas backend + 28 frontend, incluyendo integración con MySQL real, serialización de compras y generación de PDF |
+| **TDD** | ❌ → ✅ | Medio | 161 pruebas backend + 28 frontend, incluyendo integración con MySQL real, compras, aprobaciones y generación de PDF |
 | **SOLID** | ⚠️ | Medio | Aplicado de forma pragmática, no estricta |
 | **Seguridad** | ✅ | Alto | JWT + BCrypt + autorización por permiso por endpoint |
 
@@ -64,8 +64,9 @@
 - `BackendApplicationTests` — **2 pruebas de contexto**: carga de la aplicación y `GET /actuator/health` público con estado `UP`.
 - `backend/src/test/java/com/sigtm/backend/service/ComprasSerializationIntegrationTest.java` — **1 prueba de integración con MySQL real** que crea proveedor, producto, orden, factura, pago, contrato, solicitud, pronóstico, plan, incidencia y seguimiento, y verifica los listados DTO sin `LazyInitializationException`.
 - `backend/src/test/java/com/sigtm/backend/service/InspeccionRecepcionCompraServiceTest.java` — **3 pruebas** de cantidades, producto ajeno y auditoría de inspecciones.
+- `AprobacionCompraServiceTest` (5), `CuentaPorPagarServiceTest` (8), `ContratoProveedorServiceTest` (5), `ReposicionServiceTest` (6), `SeguimientoCompraServiceTest` (5), `PresupuestoCompraServiceTest` (5) y `TableroAbastecimientoServiceTest` (1) cubren la Fase 2.
 - **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3), `Vehicles.test.tsx` (4), `Billing.test.tsx` (3) e `invoicePdfService.test.ts` (2) → **28 pruebas**.
-- Resultado: **backend 152** (`./mvnw test`, incluye Testcontainers) **+ frontend 28** (`npm test`) = **180 pruebas**, todas en verde.
+- Resultado: **backend 161** (`./mvnw test`, incluye Testcontainers) **+ frontend 28** (`npm test`) = **189 pruebas**, todas en verde.
 
 **Cobertura por capa**
 | Capa | Suite | Pruebas |
@@ -102,7 +103,7 @@
 **Evidencia** (`WebSecurityConfig` + paquete `security/`)
 - **JWT** (`jjwt`) con sesión **STATELESS** y `AuthTokenFilter` que **recarga los permisos desde BD** en cada petición.
 - **Contraseñas cifradas** con `BCryptPasswordEncoder` (nunca en texto plano).
-- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 134 de los 143 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
+- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 138 de los 147 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
 - **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados a login/recuperación (`/api/autenticacion/ingresar`, `/olvidar-contrasena`, `/restablecer-contrasena`), `/uploads/**`, `/actuator/health` y `/error`; `/api/autenticacion/perfil` exige sesión.
 - **Anti-escalada de privilegios**: `UsuarioService` impide que un no administrador cree o asigne `ROLE_ADMIN`, modifique a un administrador o lo desactive.
 - Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler` que no filtra SQL ni mensajes internos.
@@ -130,6 +131,6 @@
 - **DAO** vía Spring Data JPA ✅.
 - **Seguridad** fuerte (JWT, BCrypt, permisos por endpoint) ✅.
 - **SOLID** aplicado de forma pragmática ⚠️.
-- **TDD** era el punto débil ❌; ahora hay **180 pruebas** (152 backend + 28 frontend) que cubren servicio, persistencia real con Testcontainers, serialización de compras, seguridad con filtros reales, healthcheck, generación de PDF, capa web y UI.
+- **TDD** era el punto débil ❌; ahora hay **189 pruebas** (161 backend + 28 frontend) que cubren servicio, persistencia real con Testcontainers, compras, aprobaciones, seguridad con filtros reales, healthcheck, generación de PDF, capa web y UI.
 
 Documentos relacionados: [`API.md`](../API.md) · [`ESTADISTICAS.md`](./ESTADISTICAS.md)

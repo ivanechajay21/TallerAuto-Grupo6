@@ -38,10 +38,25 @@ public class ContratoProveedorController {
         return ResponseEntity.ok(service.crearDto(supplierId, contract));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('COMPRAS:APROBAR')")
+    public ResponseEntity<ComprasResponses.ContratoProveedorResponse> actualizar(
+            @PathVariable Long supplierId, @PathVariable Long id,
+            @Valid @RequestBody ContratoProveedor contract) {
+        return ResponseEntity.ok(service.actualizarDto(supplierId, id, contract));
+    }
+
     @PatchMapping("/{id}/desactivar")
     @PreAuthorize("hasAuthority('COMPRAS:APROBAR')")
     public ResponseEntity<ComprasResponses.ContratoProveedorResponse> desactivar(@PathVariable Long supplierId,
                                                                                   @PathVariable Long id) {
         return ResponseEntity.ok(service.desactivarDto(id));
+    }
+
+    @PatchMapping("/{id}/reactivar")
+    @PreAuthorize("hasAuthority('COMPRAS:APROBAR')")
+    public ResponseEntity<ComprasResponses.ContratoProveedorResponse> reactivar(@PathVariable Long supplierId,
+                                                                                 @PathVariable Long id) {
+        return ResponseEntity.ok(service.reactivarDto(supplierId, id));
     }
 }

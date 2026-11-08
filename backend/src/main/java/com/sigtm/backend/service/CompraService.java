@@ -9,6 +9,7 @@ import com.sigtm.backend.model.*;
 import com.sigtm.backend.repository.OrdenCompraRepository;
 import com.sigtm.backend.repository.HistorialOrdenCompraRepository;
 import com.sigtm.backend.repository.DevolucionCompraRepository;
+import com.sigtm.backend.repository.NivelAprobacionCompraRepository;
 import com.sigtm.backend.repository.ProductoRepository;
 import com.sigtm.backend.repository.RecepcionCompraRepository;
 import com.sigtm.backend.repository.UsuarioRepository;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -37,6 +39,8 @@ public class CompraService {
     private final AuditoriaService auditoriaService;
     private final HistorialOrdenCompraRepository orderHistory;
     private final DevolucionCompraRepository returns;
+    private final NivelAprobacionCompraRepository approvalLevels;
+    private final ContratoProveedorService contracts;
 
     @Transactional(readOnly = true)
     public List<OrdenCompra> listar() {
@@ -88,6 +92,25 @@ public class CompraService {
                     .requestedQuantity(linea.quantity()).receivedQuantity(0).returnedQuantity(0).unitCost(linea.unitCost()).build());
             total = total.add(linea.unitCost().multiply(BigDecimal.valueOf(linea.quantity())));
         }
+
+        if ("PENDIENTE_APROBACION".equals(status)) {
+            ContratoProveedor contrato = contracts.vigente(proveedor.getId(), LocalDate.now()).orElse(null);
+            if (contrato != null) {
+                if (contrato.getMinimumPurchase() != null
+                        && total.compareTo(contrato.getMinimumPurchase()) < 0) {
+                    throw new IllegalArgumentException("La orden no alcanza la compra mínima del contrato "
+                            + contrato.getCode());
+                }
+                if (contrato.getDiscountPercentage() != null
+                        && contrato.getDiscountPercentage().signum() > 0) {
+                    total = total.multiply(BigDecimal.ONE.subtract(
+                            contrato.getDiscountPercentage().divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP)))
+                            .setScale(2, RoundingMode.HALF_UP);
+                }
+            }
+            orden.setStatus(requiereAprobacion(total) ? "PENDIENTE_APROBACION" : "PENDIENTE");
+        }
+
         orden.setTotal(total);
         OrdenCompra guardada = ordenCompraRepository.save(orden);
         evento(guardada, "EMISION", null, guardada.getStatus(), "Documento emitido");
@@ -157,16 +180,6 @@ public class CompraService {
     }
 
     @Transactional
-    public OrdenCompra aprobar(Long id) {
-        OrdenCompra orden = obtener(id);
-        if (!"PENDIENTE_APROBACION".equals(orden.getStatus())) throw new IllegalArgumentException("La orden no está pendiente de aprobación");
-        orden.setStatus("PENDIENTE");
-        evento(orden, "APROBACION", "PENDIENTE_APROBACION", "PENDIENTE", "Orden aprobada");
-        auditoriaService.registrar("UPDATE", "ORDEN_COMPRA", orden.getId(), "Orden aprobada: " + orden.getCode());
-        return ordenCompraRepository.save(orden);
-    }
-
-    @Transactional
     public OrdenCompra aceptarCotizacion(Long id) {
         OrdenCompra cotizacion = obtener(id);
         if (!"COTIZACION".equals(cotizacion.getStatus())) throw new IllegalArgumentException("El documento no es una cotización vigente");
@@ -209,6 +222,13 @@ public class CompraService {
     private void evento(OrdenCompra order, String type, String before, String after, String details) {
         orderHistory.save(HistorialOrdenCompra.builder().purchaseOrder(order).eventType(type)
                 .previousStatus(before).newStatus(after).occurredAt(LocalDateTime.now()).details(details).build());
+    }
+
+    private boolean requiereAprobacion(BigDecimal total) {
+        return approvalLevels.findByActiveTrueOrderByLevelAsc().stream().anyMatch(level ->
+                level.getAmountFrom() != null
+                        && total.compareTo(level.getAmountFrom()) >= 0
+                        && (level.getAmountTo() == null || total.compareTo(level.getAmountTo()) <= 0));
     }
 
     private String limpiar(String value) { return value == null || value.isBlank() ? null : value.trim(); }

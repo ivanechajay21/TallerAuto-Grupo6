@@ -49,4 +49,10 @@ public class CuentaPorPagarController {
             @Valid @RequestBody RegistrarPagoProveedorRequest r) {
         return ResponseEntity.ok(service.pagarDto(id, r));
     }
+
+    @PatchMapping("/{id}/anular")
+    @PreAuthorize("hasAuthority('COMPRAS:ANULAR')")
+    public ResponseEntity<ComprasResponses.FacturaProveedorResponse> anular(@PathVariable Long id) {
+        return ResponseEntity.ok(service.anularDto(id));
+    }
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -83,6 +84,29 @@ public class CuentaPorPagarService {
         return toResponse(pagarEntity(id, request));
     }
 
+    @Transactional
+    public FacturaProveedor anular(Long id) {
+        FacturaProveedor invoice = invoices.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Factura de proveedor no encontrada"));
+        if ("PAGADA".equals(invoice.getStatus())) {
+            throw new IllegalArgumentException("No se puede anular una factura pagada");
+        }
+        if (payments.existsBySupplierInvoiceId(id)) {
+            throw new IllegalArgumentException("No se puede anular una factura con pagos registrados");
+        }
+        if ("ANULADA".equals(invoice.getStatus())) {
+            throw new IllegalArgumentException("La factura ya está anulada");
+        }
+        invoice.setStatus("ANULADA");
+        audit.registrar("UPDATE", "FACTURA_PROVEEDOR", invoice.getId(), "Factura anulada " + invoice.getNumber());
+        return invoices.save(invoice);
+    }
+
+    @Transactional
+    public ComprasResponses.FacturaProveedorResponse anularDto(Long id) {
+        return toResponse(anular(id));
+    }
+
     private FacturaProveedor crearEntity(CrearFacturaProveedorRequest request) {
         if (request == null || request.number() == null || request.number().isBlank()) {
             throw new IllegalArgumentException("El número de factura es obligatorio");
@@ -104,11 +128,10 @@ public class CuentaPorPagarService {
         if (!Set.of("RECIBIDA", "PARCIAL").contains(order.getStatus())) {
             throw new IllegalArgumentException("La orden debe tener una recepción");
         }
-        if (invoices.findByPurchaseOrderId(order.getId()).isPresent()) {
-            throw new IllegalArgumentException("La orden ya tiene factura de proveedor");
-        }
-        if (request.total().compareTo(order.getTotal()) > 0) {
-            throw new IllegalArgumentException("El total de la factura no puede superar el total de la orden");
+        BigDecimal alreadyInvoiced = invoices.sumActiveTotalByPurchaseOrderId(order.getId());
+        if (alreadyInvoiced == null) alreadyInvoiced = BigDecimal.ZERO;
+        if (alreadyInvoiced.add(request.total()).compareTo(order.getTotal()) > 0) {
+            throw new IllegalArgumentException("La facturación acumulada no puede superar el total de la orden");
         }
         FacturaProveedor invoice = FacturaProveedor.builder()
                 .number(request.number().trim())

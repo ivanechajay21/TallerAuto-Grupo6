@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -46,6 +48,15 @@ public class ContratoProveedorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado")));
     }
 
+    @Transactional(readOnly = true)
+    public Optional<ContratoProveedor> vigente(Long supplierId, LocalDate date) {
+        return contracts.findBySupplierIdOrderByStartsAtDesc(supplierId).stream()
+                .filter(contract -> Boolean.TRUE.equals(contract.getActive()))
+                .filter(contract -> contract.getStartsAt() != null && contract.getEndsAt() != null)
+                .filter(contract -> !date.isBefore(contract.getStartsAt()) && !date.isAfter(contract.getEndsAt()))
+                .findFirst();
+    }
+
     @Transactional
     public ContratoProveedor crear(Long supplierId, ContratoProveedor data) {
         return crearEntity(supplierId, data);
@@ -54,6 +65,17 @@ public class ContratoProveedorService {
     @Transactional
     public ComprasResponses.ContratoProveedorResponse crearDto(Long supplierId, ContratoProveedor data) {
         return ComprasResponses.ContratoProveedorResponse.from(crearEntity(supplierId, data));
+    }
+
+    @Transactional
+    public ComprasResponses.ContratoProveedorResponse actualizarDto(Long supplierId, Long id,
+            ContratoProveedor data) {
+        return ComprasResponses.ContratoProveedorResponse.from(actualizarEntity(supplierId, id, data));
+    }
+
+    @Transactional
+    public ComprasResponses.ContratoProveedorResponse reactivarDto(Long supplierId, Long id) {
+        return ComprasResponses.ContratoProveedorResponse.from(reactivarEntity(supplierId, id));
     }
 
     @Transactional
@@ -66,9 +88,39 @@ public class ContratoProveedorService {
         return ComprasResponses.ContratoProveedorResponse.from(desactivarEntity(id));
     }
 
-    private ContratoProveedor crearEntity(Long supplierId, ContratoProveedor data) {
-        Proveedor supplier = suppliers.findById(supplierId)
-                .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado"));
+    private ContratoProveedor actualizarEntity(Long supplierId, Long id, ContratoProveedor data) {
+        ContratoProveedor contract = contracts.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
+        if (contract.getSupplier() == null || !supplierId.equals(contract.getSupplier().getId())) {
+            throw new ResourceNotFoundException("El contrato no pertenece al proveedor indicado");
+        }
+        validar(data);
+        contract.setStartsAt(data.getStartsAt());
+        contract.setEndsAt(data.getEndsAt());
+        contract.setCurrency(data.getCurrency());
+        contract.setDiscountPercentage(data.getDiscountPercentage());
+        contract.setPaymentDays(data.getPaymentDays());
+        contract.setMinimumPurchase(data.getMinimumPurchase());
+        contract.setTerms(data.getTerms());
+        if (data.getActive() != null) contract.setActive(data.getActive());
+        ContratoProveedor saved = contracts.save(contract);
+        audit.registrar("UPDATE", "CONTRATO_PROVEEDOR", saved.getId(), "Contrato actualizado " + saved.getCode());
+        return saved;
+    }
+
+    private ContratoProveedor reactivarEntity(Long supplierId, Long id) {
+        ContratoProveedor contract = contracts.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
+        if (contract.getSupplier() == null || !supplierId.equals(contract.getSupplier().getId())) {
+            throw new ResourceNotFoundException("El contrato no pertenece al proveedor indicado");
+        }
+        contract.setActive(true);
+        ContratoProveedor saved = contracts.save(contract);
+        audit.registrar("UPDATE", "CONTRATO_PROVEEDOR", saved.getId(), "Contrato reactivado " + saved.getCode());
+        return saved;
+    }
+
+    private void validar(ContratoProveedor data) {
         if (data.getStartsAt() == null || data.getEndsAt() == null) {
             throw new IllegalArgumentException("Las fechas de inicio y fin son obligatorias");
         }
@@ -81,6 +133,12 @@ public class ContratoProveedorService {
         if (data.getDiscountPercentage() == null) data.setDiscountPercentage(BigDecimal.ZERO);
         if (data.getPaymentDays() == null) data.setPaymentDays(0);
         if (data.getMinimumPurchase() == null) data.setMinimumPurchase(BigDecimal.ZERO);
+    }
+
+    private ContratoProveedor crearEntity(Long supplierId, ContratoProveedor data) {
+        Proveedor supplier = suppliers.findById(supplierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado"));
+        validar(data);
         data.setSupplier(supplier);
         data.setCode("CP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         if (data.getActive() == null) data.setActive(true);

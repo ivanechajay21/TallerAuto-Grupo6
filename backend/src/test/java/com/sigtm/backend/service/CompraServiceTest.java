@@ -1,10 +1,12 @@
 package com.sigtm.backend.service;
 
 import com.sigtm.backend.dto.CrearOrdenCompraRequest;
+import com.sigtm.backend.model.NivelAprobacionCompra;
 import com.sigtm.backend.model.OrdenCompra;
 import com.sigtm.backend.model.Producto;
 import com.sigtm.backend.model.Proveedor;
 import com.sigtm.backend.repository.OrdenCompraRepository;
+import com.sigtm.backend.repository.NivelAprobacionCompraRepository;
 import com.sigtm.backend.repository.ProductoRepository;
 import com.sigtm.backend.repository.RecepcionCompraRepository;
 import com.sigtm.backend.repository.UsuarioRepository;
@@ -17,12 +19,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,17 +40,24 @@ class CompraServiceTest {
     @Mock private AuditoriaService auditoriaService;
     @Mock private HistorialOrdenCompraRepository historialOrdenCompraRepository;
     @Mock private DevolucionCompraRepository devolucionCompraRepository;
+    @Mock private NivelAprobacionCompraRepository approvalLevels;
+    @Mock private ContratoProveedorService contracts;
 
     @Test
     void creaOrdenPendienteConTotalCalculadoYLineasDeProducto() {
         CompraService service = new CompraService(ordenCompraRepository, recepcionCompraRepository, proveedorService,
-                productoRepository, productoService, usuarioRepository, auditoriaService, historialOrdenCompraRepository, devolucionCompraRepository);
+                productoRepository, productoService, usuarioRepository, auditoriaService, historialOrdenCompraRepository,
+                devolucionCompraRepository, approvalLevels, contracts);
         Proveedor proveedor = Proveedor.builder().id(4L).businessName("Repuestos Perú").taxId("20123456789").active(true).build();
         Producto producto = Producto.builder().id(9L).name("Filtro de aceite").code("FIL-01").active(true).build();
         CrearOrdenCompraRequest request = new CrearOrdenCompraRequest(4L, null, "Compra semanal",
                 List.of(new CrearOrdenCompraRequest.Item(9L, 3, new BigDecimal("12.50"))));
         when(proveedorService.obtener(4L)).thenReturn(proveedor);
         when(productoRepository.findById(9L)).thenReturn(Optional.of(producto));
+        when(approvalLevels.findByActiveTrueOrderByLevelAsc()).thenReturn(List.of(
+                NivelAprobacionCompra.builder().id(1L).level(1).amountFrom(BigDecimal.ZERO)
+                        .requiredApprovals(1).requiredRole("ROLE_MANAGER").build()));
+        when(contracts.vigente(eq(4L), any(LocalDate.class))).thenReturn(Optional.empty());
         AtomicReference<OrdenCompra> saved = new AtomicReference<>();
         when(ordenCompraRepository.save(any(OrdenCompra.class))).thenAnswer(invocation -> {
             OrdenCompra order = invocation.getArgument(0);

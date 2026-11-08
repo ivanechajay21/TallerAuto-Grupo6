@@ -13,6 +13,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -114,6 +115,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<Map<String, Object>> handleTooManyRequests(TooManyRequestsException ex) {
         return new ResponseEntity<>(buildBody(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()), HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.NOT_FOUND, "Recurso no encontrado"),
+                HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(RuntimeException.class)

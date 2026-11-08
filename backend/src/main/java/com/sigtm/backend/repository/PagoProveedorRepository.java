@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface PagoProveedorRepository extends JpaRepository<PagoProveedor, Long> {
     List<PagoProveedor> findBySupplierInvoiceIdOrderByPaidAtDesc(Long supplierInvoiceId);
+
+    boolean existsBySupplierInvoiceId(Long supplierInvoiceId);
 }

@@ -38,8 +38,6 @@ public class CompraController {
     public ResponseEntity<OrdenCompra> crear(@Valid @RequestBody CrearOrdenCompraRequest request) {
         return ResponseEntity.ok(compraService.crear(request));
     }
-    @PostMapping("/{id}/aprobar") @PreAuthorize("hasAuthority('COMPRAS:APROBAR')")
-    public ResponseEntity<OrdenCompra> aprobar(@PathVariable Long id) { return ResponseEntity.ok(compraService.aprobar(id)); }
     @PostMapping("/{id}/devoluciones") @PreAuthorize("hasAuthority('COMPRAS:DEVOLVER')")
     public ResponseEntity<OrdenCompra> devolver(@PathVariable Long id, @Valid @RequestBody DevolverCompraRequest request) { return ResponseEntity.ok(compraService.devolver(id, request)); }
 

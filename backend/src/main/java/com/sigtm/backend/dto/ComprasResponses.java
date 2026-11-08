@@ -207,6 +207,18 @@ public final class ComprasResponses {
         }
     }
 
+    public record PoliticaReposicionResponse(Long id, ProductoResumen product,
+                                             ProveedorResumen preferredSupplier, Integer reorderPoint,
+                                             Integer minimumLot, Integer targetStock, Integer leadTimeDays,
+                                             Boolean active) {
+        public static PoliticaReposicionResponse from(com.sigtm.backend.model.PoliticaReposicion value) {
+            if (value == null) return null;
+            return new PoliticaReposicionResponse(value.getId(), ProductoResumen.from(value.getProduct()),
+                    ProveedorResumen.from(value.getPreferredSupplier()), value.getReorderPoint(),
+                    value.getMinimumLot(), value.getTargetStock(), value.getLeadTimeDays(), value.getActive());
+        }
+    }
+
     public record NivelAprobacionCompraResponse(Long id, Integer level, BigDecimal amountFrom,
                                                 BigDecimal amountTo, String requiredRole,
                                                 Integer requiredApprovals, Boolean active) {

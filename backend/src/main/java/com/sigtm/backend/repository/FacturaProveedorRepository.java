@@ -7,12 +7,17 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public interface FacturaProveedorRepository extends JpaRepository<FacturaProveedor, Long> {
     Optional<FacturaProveedor> findByNumber(String number);
 
     Optional<FacturaProveedor> findByPurchaseOrderId(Long purchaseOrderId);
+
+    @Query("select coalesce(sum(f.total), 0) from FacturaProveedor f " +
+            "where f.purchaseOrder.id = :orderId and f.status <> 'ANULADA'")
+    BigDecimal sumActiveTotalByPurchaseOrderId(@Param("orderId") Long orderId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select f from FacturaProveedor f where f.id = :id")

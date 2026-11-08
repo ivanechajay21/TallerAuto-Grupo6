@@ -13,7 +13,7 @@ Aplicación web para administrar la operación de un taller mecánico: clientes 
 
 La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El frontend envía el JWT en el encabezado `Authorization: Bearer <token>` y el backend autoriza cada operación mediante permisos.
 
-Composición del código con la métrica de **GitHub Linguist (por bytes): Java 52.3 %**, TypeScript/TSX 45.9 % y configuración/CSS 1.8 %. El detalle por líneas, archivos y paquetes está en [`docs/ESTADISTICAS.md`](docs/ESTADISTICAS.md).
+Composición del código con la métrica de **GitHub Linguist (por bytes): Java 53.3 %**, TypeScript/TSX 44.9 % y configuración/CSS 1.8 %. El detalle por líneas, archivos y paquetes está en [`docs/ESTADISTICAS.md`](docs/ESTADISTICAS.md).
 
 ## Funcionalidades
 
