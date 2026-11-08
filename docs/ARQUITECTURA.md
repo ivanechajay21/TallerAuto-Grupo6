@@ -103,7 +103,7 @@
 **Evidencia** (`WebSecurityConfig` + paquete `security/`)
 - **JWT** (`jjwt`) con sesión **STATELESS** y `AuthTokenFilter` que **recarga los permisos desde BD** en cada petición.
 - **Contraseñas cifradas** con `BCryptPasswordEncoder` (nunca en texto plano).
-- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 138 de los 147 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
+- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 139 de los 148 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
 - **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados a login/recuperación (`/api/autenticacion/ingresar`, `/olvidar-contrasena`, `/restablecer-contrasena`), `/uploads/**`, `/actuator/health` y `/error`; `/api/autenticacion/perfil` exige sesión.
 - **Anti-escalada de privilegios**: `UsuarioService` impide que un no administrador cree o asigne `ROLE_ADMIN`, modifique a un administrador o lo desactive.
 - Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler` que no filtra SQL ni mensajes internos.
