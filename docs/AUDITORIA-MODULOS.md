@@ -7,6 +7,8 @@
 > **Actualización 7/11/2026:** la Fase 1 de estabilización ya está implementada. Los siete endpoints que devolvían 500 ahora responden correctamente y entregan DTOs. Ver [`FASE1-COMPRAS.md`](./FASE1-COMPRAS.md).
 >
 > **Actualización 8/11/2026:** la Fase 2 ya está implementada: aprobaciones multinivel, contratos editables y reactivables, política de reposición, ranking de proveedores y facturación parcial/anulación. Ver [`FASE2-COMPRAS.md`](./FASE2-COMPRAS.md).
+>
+> **Actualización 8/11/2026:** la Fase 3 ya está implementada: rutas y pantallas de proveedores, compras y abastecimiento; roles personalizados; gating de permisos; buscador global y anulación de comprobantes de venta. Ver [`FASE3-FRONTEND.md`](./FASE3-FRONTEND.md).
 
 ## Veredicto
 

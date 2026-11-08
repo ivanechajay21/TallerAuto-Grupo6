@@ -55,6 +55,8 @@ export default function Customers() {
   const toast = useToast();
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('CLIENTES:CREAR');
+  const canEdit = hasPermission('CLIENTES:EDITAR');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -330,13 +332,15 @@ export default function Customers() {
           >
             <Car size={18} />
           </button>
-          <button
-            onClick={() => openEdit(c)}
-            className="rounded-lg p-2 text-slate-400 dark:text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
-            title="Editar"
-          >
-            <Edit2 size={18} />
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => openEdit(c)}
+              className="rounded-lg p-2 text-slate-400 dark:text-slate-500 transition hover:bg-blue-50 hover:text-blue-600"
+              title="Editar"
+            >
+              <Edit2 size={18} />
+            </button>
+          )}
           {hasPermission('CLIENTES:ELIMINAR') && (
             <button
               onClick={() => setConfirmDelete(c)}
@@ -374,13 +378,15 @@ export default function Customers() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Clientes</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Gestiona el directorio de clientes del taller.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
-        >
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Nuevo Cliente
-        </button>
+        {canCreate && (
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
+          >
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nuevo Cliente
+          </button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">

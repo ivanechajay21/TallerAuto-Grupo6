@@ -5,6 +5,7 @@ import type { WorkOrderItem } from '../services/workOrderService';
 import { getCurrentUser } from '../services/authService';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/Toast';
+import { usePermissions } from '../context/PermissionContext';
 import usePagination from '../hooks/usePagination';
 import Pagination from '../components/ui/Pagination';
 
@@ -16,6 +17,8 @@ const STATUS_META: Record<string, { label: string; color: string; dot: string }>
 
 export default function MyWork() {
   const toast = useToast();
+  const { hasPermission } = usePermissions();
+  const canChangeStatus = hasPermission('MI_TRABAJO:CAMBIAR_ESTADO') || hasPermission('ITEMS:CAMBIAR_ESTADO');
   const user = getCurrentUser();
   const [items, setItems] = useState<WorkOrderItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,7 +165,7 @@ export default function MyWork() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {canCancelProgress(item) && (
+                      {canChangeStatus && canCancelProgress(item) && (
                         <button
                           onClick={() => changeStatus(item, 'PENDING')}
                           className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/40"
@@ -170,7 +173,7 @@ export default function MyWork() {
                           <Pause size={14} /> Pausar
                         </button>
                       )}
-                      {canStart(item) && (
+                      {canChangeStatus && canStart(item) && (
                         <button
                           onClick={() => changeStatus(item, 'IN_PROGRESS')}
                           className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-blue-500"
@@ -178,7 +181,7 @@ export default function MyWork() {
                           <Play size={14} /> Iniciar
                         </button>
                       )}
-                      {canFinish(item) && (
+                      {canChangeStatus && canFinish(item) && (
                         <button
                           onClick={() => changeStatus(item, 'COMPLETED')}
                           className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-500"

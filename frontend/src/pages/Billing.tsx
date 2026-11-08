@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ArrowUpRight,
+  Ban,
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
@@ -17,7 +18,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { getAllInvoices, generateInvoice, payInvoice } from '../services/invoiceService';
+import { cancelInvoice, getAllInvoices, generateInvoice, payInvoice } from '../services/invoiceService';
 import type { DocumentType, Invoice, InvoiceItem } from '../services/invoiceService';
 import { getAllWorkOrders } from '../services/workOrderService';
 import type { WorkOrder } from '../services/workOrderService';
@@ -33,6 +34,7 @@ import {
 } from '../services/invoiceFormat';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/Toast';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { usePermissions } from '../context/PermissionContext';
 import { useOptionalShopSettings } from '../context/SettingsContext';
 import usePagination from '../hooks/usePagination';
@@ -113,6 +115,7 @@ export default function Billing() {
   const settings = shop?.settings;
   const canApprove = hasPermission('FACTURAS:APROBAR');
   const canCreate = hasPermission('FACTURAS:CREAR');
+  const canCancel = hasPermission('FACTURAS:ELIMINAR');
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -120,6 +123,8 @@ export default function Billing() {
   const [statusFilter, setStatusFilter] = useState<InvoiceFilter>('ALL');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [paying, setPaying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('CASH');
 
@@ -261,6 +266,21 @@ export default function Billing() {
       toast.error('Error', err?.response?.data?.message || 'No se pudo registrar el pago.');
     } finally {
       setPaying(false);
+    }
+  };
+
+  const handleCancelInvoice = async () => {
+    if (!selected) return;
+    setCancelling(true);
+    try {
+      const updated = await cancelInvoice(selected.id);
+      setInvoices((prev) => prev.map((invoice) => (invoice.id === selected.id ? updated : invoice)));
+      setConfirmCancel(false);
+      toast.success('Comprobante anulado', `${updated.invoiceNumber} quedó anulado.`);
+    } catch (err: any) {
+      toast.error('Error', err?.response?.data?.message || 'No se pudo anular el comprobante.');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -641,6 +661,16 @@ export default function Billing() {
                 </div>
               )}
 
+              {selected.status === 'PENDING' && canCancel && (
+                <button
+                  onClick={() => setConfirmCancel(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
+                >
+                  <Ban size={15} />
+                  Anular comprobante
+                </button>
+              )}
+
               {selected.status === 'CANCELLED' && (
                 <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
                   <X size={16} />
@@ -808,6 +838,16 @@ export default function Billing() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmCancel}
+        title="Anular comprobante"
+        message={`¿Anular ${selected?.invoiceNumber || 'este comprobante'}? Esta acción no se puede deshacer.`}
+        confirmLabel="Anular"
+        busy={cancelling}
+        onCancel={() => setConfirmCancel(false)}
+        onConfirm={handleCancelInvoice}
+      />
     </div>
   );
 }

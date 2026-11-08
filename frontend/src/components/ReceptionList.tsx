@@ -16,6 +16,7 @@ import { cn } from '../lib/utils';
 import { getAllReceptions, emitOrderFromReception } from '../services/receptionService';
 import type { Reception } from '../services/receptionService';
 import { useToast } from './ui/Toast';
+import { usePermissions } from '../context/PermissionContext';
 import usePagination from '../hooks/usePagination';
 import Pagination from './ui/Pagination';
 
@@ -43,6 +44,8 @@ const formatTime = (iso: string) =>
 
 export default function ReceptionList() {
   const toast = useToast();
+  const { hasPermission } = usePermissions();
+  const canCreateOrder = hasPermission('RECEPCION:CREAR');
   const [receptions, setReceptions] = useState<Reception[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -147,7 +150,7 @@ export default function ReceptionList() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {pag.pageItems.map((r) => {
                   const st = RECEP_STATUS[r.status] || { label: r.status, cls: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' };
-                  const canEmit = !r.workOrderNumber;
+                  const canEmit = !r.workOrderNumber && canCreateOrder;
                   return (
                     <tr key={r.id} className="transition hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
                       <td className="px-4 py-3">

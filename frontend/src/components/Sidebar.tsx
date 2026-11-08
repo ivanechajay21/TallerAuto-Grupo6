@@ -10,6 +10,9 @@ import {
   CalendarDays,
   PackageSearch,
   ShoppingCart,
+  Building2,
+  Truck,
+  Boxes,
   BarChart3,
   UserCog,
   Activity,
@@ -66,6 +69,14 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { name: 'Vehículos', href: '/vehiculos', icon: CarFront, permission: 'VEHICULOS:VER' },
       { name: 'Agenda y Citas', href: '/citas', icon: CalendarDays, permission: 'CITAS:VER' },
       { name: 'Inventario', href: '/inventario', icon: PackageSearch, permission: 'PRODUCTOS:VER' },
+    ],
+  },
+  {
+    label: 'Compras',
+    items: [
+      { name: 'Proveedores', href: '/proveedores', icon: Building2, permission: 'PROVEEDORES:VER' },
+      { name: 'Compras', href: '/compras', icon: Truck, permission: 'COMPRAS:VER' },
+      { name: 'Abastecimiento', href: '/abastecimiento', icon: Boxes, permission: 'COMPRAS:VER' },
     ],
   },
   {
@@ -430,7 +441,7 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }: 
                 {user?.name} {user?.lastName}
               </p>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                {ROLE_LABELS[user?.roleName || ''] || user?.username}
+                {ROLE_LABELS[user?.roleName || ''] || user?.roleName?.replace('ROLE_', '') || user?.username}
               </p>
             </div>
             <button

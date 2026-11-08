@@ -101,11 +101,18 @@ const EMPTY_FORM: VehicleForm = {
 export default function Vehicles() {
   const toast = useToast();
   const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('VEHICULOS:CREAR');
+  const canEdit = hasPermission('VEHICULOS:EDITAR');
   const [params] = useSearchParams();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [search, setSearch] = useState(params.get('q') || '');
   const [loading, setLoading] = useState(true);
+
+  // El buscador global puede navegar a /vehiculos?q=... desde la misma página.
+  useEffect(() => {
+    setSearch(params.get('q') || '');
+  }, [params]);
 
   const [history, setHistory] = useState<VehicleHistory | null>(null);
   const [historyVehicle, setHistoryVehicle] = useState<Vehicle | null>(null);
@@ -273,12 +280,14 @@ export default function Vehicles() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Vehículos</h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Gestión e historial clínico de los vehículos ingresados.</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Registrar Vehículo
-        </button>
+        {canCreate && (
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500"
+          >
+            <Plus className="mr-2 h-4 w-4" /> Registrar Vehículo
+          </button>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
@@ -361,13 +370,15 @@ export default function Vehicles() {
                     <Wrench size={18} className="mb-1" />
                     <span className="text-[10px] font-medium uppercase tracking-wider">Historial</span>
                   </button>
-                  <button
-                    onClick={() => openEdit(v)}
-                    className="flex flex-col items-center justify-center rounded-lg p-2 text-slate-500 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-blue-600"
-                  >
-                    <AlertCircle size={18} className="mb-1" />
-                    <span className="text-[10px] font-medium uppercase tracking-wider">Editar</span>
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => openEdit(v)}
+                      className="flex flex-col items-center justify-center rounded-lg p-2 text-slate-500 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-blue-600"
+                    >
+                      <AlertCircle size={18} className="mb-1" />
+                      <span className="text-[10px] font-medium uppercase tracking-wider">Editar</span>
+                    </button>
+                  )}
                   {hasPermission('VEHICULOS:ELIMINAR') && (
                     <button
                       onClick={() => setConfirmDelete(v)}

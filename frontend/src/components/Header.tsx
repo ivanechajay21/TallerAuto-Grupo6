@@ -66,10 +66,15 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   '/citas': { title: 'Agenda y Citas', subtitle: 'Planificación de servicios' },
   '/inventario': { title: 'Inventario', subtitle: 'Productos, repuestos y stock' },
   '/facturacion': { title: 'Facturación', subtitle: 'Facturas y cobranzas' },
+  '/proveedores': { title: 'Proveedores', subtitle: 'Proveedores y contratos' },
+  '/compras': { title: 'Compras', subtitle: 'Órdenes, recepciones y aprobaciones' },
+  '/abastecimiento': { title: 'Abastecimiento', subtitle: 'Reposición, planificación y pagos' },
   '/reportes': { title: 'Reportes', subtitle: 'Indicadores y exportaciones' },
   '/usuarios': { title: 'Usuarios', subtitle: 'Cuentas del personal' },
   '/roles': { title: 'Roles y Permisos', subtitle: 'Control de accesos por rol' },
   '/auditoria': { title: 'Auditoría', subtitle: 'Registro de actividades' },
+  '/configuracion': { title: 'Configuración', subtitle: 'Parámetros del taller' },
+  '/recepcion/nueva': { title: 'Nueva Recepción', subtitle: 'Recepción digital de vehículos' },
 };
 
 interface HeaderProps {
@@ -98,8 +103,9 @@ function SearchForm({ className }: { className?: string }) {
       )}
       onSubmit={(e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement)?.value;
-        navigate(`/vehiculos?q=${encodeURIComponent(q || '')}`);
+        const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement)?.value?.trim();
+        if (!q) return;
+        navigate(`/vehiculos?q=${encodeURIComponent(q)}`);
       }}
       role="search"
     >

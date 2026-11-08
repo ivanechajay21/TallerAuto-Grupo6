@@ -13,7 +13,7 @@ Aplicación web para administrar la operación de un taller mecánico: clientes 
 
 La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El frontend envía el JWT en el encabezado `Authorization: Bearer <token>` y el backend autoriza cada operación mediante permisos.
 
-Composición del código con la métrica de **GitHub Linguist (por bytes): Java 53.3 %**, TypeScript/TSX 44.9 % y configuración/CSS 1.8 %. El detalle por líneas, archivos y paquetes está en [`docs/ESTADISTICAS.md`](docs/ESTADISTICAS.md).
+Composición del código con la métrica de **GitHub Linguist (por bytes): Java 50.2 %**, TypeScript/TSX 48.1 % y configuración/CSS 1.7 %. El detalle por líneas, archivos y paquetes está en [`docs/ESTADISTICAS.md`](docs/ESTADISTICAS.md).
 
 ## Funcionalidades
 
@@ -22,6 +22,7 @@ Composición del código con la métrica de **GitHub Linguist (por bytes): Java 
 - Asignación y seguimiento de trabajos de mecánicos.
 - Inventario, movimientos de existencias y catálogo de servicios.
 - Facturación con emisión de factura o boleta, series y correlativos propios, comprobantes PDF profesionales, control de pagos y dashboard con centro de reportes exportable a PDF/Excel.
+- Compras, proveedores y contratos, aprobaciones multinivel, recepciones, seguimiento logístico, reposición, planificación, presupuesto y cuentas por pagar.
 - Usuarios, roles, permisos, configuración y auditoría.
 - Recuperación de contraseña por SMTP y carga de imágenes/documentos de recepción.
 

@@ -201,6 +201,27 @@ public class FacturaService {
         return aMapa(guardada);
     }
 
+    /**
+     * Anula un comprobante pendiente. Un comprobante pagado no se anula sin
+     * una nota de crédito; el flujo actual solo permite anular pendientes.
+     */
+    @Transactional
+    public Map<String, Object> anularFactura(Long id) {
+        Factura factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Factura no encontrada"));
+        if ("PAID".equals(factura.getStatus())) {
+            throw new IllegalArgumentException("No se puede anular un comprobante pagado");
+        }
+        if ("CANCELLED".equals(factura.getStatus())) {
+            throw new IllegalArgumentException("El comprobante ya está anulado");
+        }
+        factura.setStatus("CANCELLED");
+        Factura guardada = facturaRepository.save(factura);
+        auditoriaService.registrar("UPDATE", "FACTURA", guardada.getId(),
+                "Anulación de " + etiqueta(guardada) + " " + guardada.getInvoiceNumber());
+        return aMapa(guardada);
+    }
+
     private String normalizarDocumento(OrdenTrabajo workOrder) {
         if (workOrder.getCustomer() == null
                 || workOrder.getCustomer().getDocumentNumber() == null

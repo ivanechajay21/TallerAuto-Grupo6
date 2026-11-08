@@ -8,12 +8,12 @@
 
 | Lenguaje | Archivos | Líneas de código | % |
 |---|---:|---:|---:|
-| TSX (React) | 42 | 12 574 | 40.3 % |
-| **Java** | **238** | **15 547** | **49.8 %** |
-| TS (servicios/utilidades) | 26 | 2 063 | 6.6 % |
+| TSX (React) | 45 | 14 101 | 42.6 % |
+| **Java** | **238** | **15 588** | **47.1 %** |
+| TS (servicios/utilidades) | 27 | 2 365 | 7.1 % |
 | CSS | 2 | 414 | 1.3 % |
-| XML (pom) / YML / HTML / JS | 9 | 610 | 2.0 % |
-| **Total** | **317** | **31 208** | **100 %** |
+| XML (pom) / YML / HTML / JS | 9 | 610 | 1.8 % |
+| **Total** | **321** | **33 078** | **100 %** |
 
 ## Resumen por bytes (métrica de GitHub Linguist)
 
@@ -21,28 +21,28 @@ Esta es la métrica que usa GitHub para mostrar la composición de lenguajes del
 
 | Lenguaje | Archivos | Tamaño | % |
 |---|---:|---:|---:|
-| **Java** | **238** | **787 408 B** | **53.3 %** |
-| TSX (React) | 42 | 590 163 B | 39.9 % |
-| TS (servicios/utilidades) | 26 | 73 711 B | 5.0 % |
+| **Java** | **238** | **789 560 B** | **50.2 %** |
+| TSX (React) | 45 | 670 349 B | 42.6 % |
+| TS (servicios/utilidades) | 27 | 85 890 B | 5.5 % |
 | XML (pom) / YML / HTML / JS | 9 | 18 294 B | 1.2 % |
-| CSS | 2 | 8 513 B | 0.6 % |
-| **Total** | **317** | **1 478 089 B** | **100 %** |
+| CSS | 2 | 8 513 B | 0.5 % |
+| **Total** | **321** | **1 572 606 B** | **100 %** |
 
-> **Java supera el 50 % con la métrica de GitHub Linguist (53.3 %).** Por líneas no vacías está en 49.8 %; por archivos, Java representa el **75.1 %**. Las fases 1 y 2 agregaron DTOs, flujos de negocio y pruebas reales sin relleno.
+> **Java supera el 50 % con la métrica de GitHub Linguist (50.2 %).** Por líneas no vacías está en 47.1 %; por archivos, Java representa el **74.1 %**. Las fases 1 y 2 agregaron backend; la Fase 3 agregó las pantallas de proveedores, compras y abastecimiento.
 
 ### Vistas rápidas
 
-- **Java (backend): 15 547 líneas → 49.8 %** del código por LOC; **787 408 bytes → 53.3 %** por tamaño de archivos.
-- **Frontend (TSX + TS + CSS): 15 051 líneas → 48.2 %** por LOC; **672 387 bytes → 45.5 %** por bytes.
-- **Configuración (XML/YML/HTML/JS): 2.0 %** por LOC.
-- **Por número de archivos:** Java = **238 de 317** archivos de código (**75.1 %**).
+- **Java (backend): 15 588 líneas → 47.1 %** del código por LOC; **789 560 bytes → 50.2 %** por tamaño de archivos.
+- **Frontend (TSX + TS + CSS): 16 880 líneas → 51.0 %** por LOC; **764 752 bytes → 48.6 %** por bytes.
+- **Configuración (XML/YML/HTML/JS): 1.8 %** por LOC.
+- **Por número de archivos:** Java = **238 de 321** archivos de código (**74.1 %**).
 
 ## Backend — Java por paquete (`src/main/java`)
 
 | Paquete | Archivos | Líneas de código |
 |---|---:|---:|
-| `service` | 38 | 5 883 |
-| `controller` | 37 | 2 485 |
+| `service` | 38 | 5 903 |
+| `controller` | 37 | 2 490 |
 | `model` | 51 | 1 585 |
 | `repository` | 41 | 870 |
 | `security` (incl. `jwt`) | 7 | 487 |
@@ -50,9 +50,9 @@ Esta es la métrica que usa GitHub para mostrar la composición de lenguajes del
 | `dto` | 26 | 556 |
 | `exception` | 4 | 155 |
 | raíz (`BackendApplication`) | 1 | 15 |
-| **Subtotal `main`** | **208** | **12 464** |
-| `test` | 30 | 3 083 |
-| **Total Java** | **238** | **15 547** |
+| **Subtotal `main`** | **208** | **12 489** |
+| `test` | 30 | 3 099 |
+| **Total Java** | **238** | **15 588** |
 
 ## Frontend — por carpeta (`src`)
 
@@ -76,7 +76,7 @@ Esta es la métrica que usa GitHub para mostrar la composición de lenguajes del
 - El **frontend en React/TypeScript** pesa algo más de la mitad de las líneas no vacías, algo habitual en aplicaciones de gestión con paneles, tablas y formularios.
 - Dentro del backend, la **lógica de negocio (`service`) es el bloque más grande**, seguido de los controladores (API REST) y el modelo de datos.
 - Dentro del frontend, las **páginas** (`pages`) son, con diferencia, el bloque más grande.
-- La suite de pruebas aporta **3 083 líneas Java** y **28 pruebas de frontend**, además de pruebas de integración con MySQL real, compras, aprobaciones y generación de PDF.
+- La suite de pruebas aporta **3 099 líneas Java** y **28 pruebas de frontend**, además de pruebas de integración con MySQL real, compras, aprobaciones y generación de PDF.
 
 ### Notas
 

@@ -21,6 +21,7 @@ import type { Permission } from '../services/permissionService';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/Toast';
 import { usePermissions } from '../context/PermissionContext';
+import { getCurrentUser } from '../services/authService';
 
 const ACTION_LABELS: Record<string, string> = {
   VER: 'Ver',
@@ -31,9 +32,15 @@ const ACTION_LABELS: Record<string, string> = {
   APROBAR: 'Aprobar',
   ASIGNAR: 'Asignar',
   CAMBIAR_ESTADO: 'Cambiar estado',
+  RECEPCIONAR: 'Recepcionar',
+  ANULAR: 'Anular',
+  DEVOLVER: 'Devolver',
 };
 
-const ACTION_ORDER = ['VER', 'CREAR', 'EDITAR', 'ELIMINAR', 'EXPORTAR', 'APROBAR', 'ASIGNAR', 'CAMBIAR_ESTADO'];
+const ACTION_ORDER = [
+  'VER', 'CREAR', 'EDITAR', 'ELIMINAR', 'EXPORTAR', 'APROBAR', 'ASIGNAR',
+  'CAMBIAR_ESTADO', 'RECEPCIONAR', 'ANULAR', 'DEVOLVER',
+];
 
 const MODULE_LABELS: Record<string, string> = {
   DASHBOARD: 'Dashboard',
@@ -49,6 +56,8 @@ const MODULE_LABELS: Record<string, string> = {
   INVENTORY_MOVS: 'Movimientos de inventario',
   BILLING: 'Facturación',
   BILLING_QUOTES: 'Cotizaciones',
+  SUPPLIERS: 'Proveedores',
+  PURCHASES: 'Compras',
   REPORTS: 'Reportes',
   CONFIG: 'Configuración',
   AUDIT: 'Auditoría',
@@ -177,6 +186,7 @@ function RoleModal({
 
 export default function Roles() {
   const toast = useToast();
+  const isAdmin = getCurrentUser()?.roleName === 'ROLE_ADMIN';
   const { refresh: refreshPermissions } = usePermissions();
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -236,7 +246,7 @@ export default function Roles() {
   }, [permissions]);
 
   const toggle = (code: string) => {
-    if (!selectedRole) return;
+    if (!selectedRole || !isAdmin) return;
     // Permisos críticos del rol Administrador: no se pueden quitar desde la UI.
     if (isProtectedCode(selectedRole.name, code)) return;
     setSelected((prev) => {
@@ -248,7 +258,7 @@ export default function Roles() {
   };
 
   const toggleModule = (_module: string, codes: string[]) => {
-    if (!selectedRole) return;
+    if (!selectedRole || !isAdmin) return;
     // El toggle de módulo solo actúa sobre permisos no protegidos (rol ADMIN).
     const togglable = codes.filter((c) => !isProtectedCode(selectedRole.name, c));
     if (togglable.length === 0) return;
@@ -328,21 +338,23 @@ export default function Roles() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
-            disabled={!selectedRole || saving}
+            disabled={!selectedRole || saving || !isAdmin}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:from-blue-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
             Guardar permisos
           </button>
-          <button
-            onClick={() => {
-              setEditingRole(null);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            <Plus size={15} /> Nuevo rol
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setEditingRole(null);
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <Plus size={15} /> Nuevo rol
+            </button>
+          )}
         </div>
       </div>
 
@@ -399,7 +411,7 @@ export default function Roles() {
                     <Users size={11} /> {role.usersCount} usuario(s)
                   </span>
                 </span>
-                {!role.system && (
+                {!role.system && isAdmin && (
                   <span className="flex flex-col gap-0.5 opacity-0 transition group-hover:opacity-100">
                     <button
                       onClick={(e) => {
@@ -517,7 +529,7 @@ export default function Roles() {
                                   <button
                                     key={a.code}
                                     onClick={() => toggle(a.code)}
-                                    disabled={protectedCode}
+                                    disabled={protectedCode || !isAdmin}
                                     title={
                                       protectedCode
                                         ? 'Permiso protegido: necesario para administrar el sistema'

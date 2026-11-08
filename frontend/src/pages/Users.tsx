@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Search, ShieldCheck, Eye, UserCog, Power, Save, X, Clock, UserPlus } from 'lucide-react';
 import { getAllUsers, getUserById, updateUser, setUserActive, createUser } from '../services/userService';
 import type { UserInfo, UpdateUserPayload, CreateUserPayload } from '../services/userService';
+import { getRoles } from '../services/roleService';
+import type { Role } from '../services/roleService';
 import { getCurrentUser } from '../services/authService';
 import { usePermissions } from '../context/PermissionContext';
 import { useToast } from '../components/ui/Toast';
@@ -45,11 +47,18 @@ export default function Users() {
   const me = getCurrentUser();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission('USUARIOS:CREAR');
+  const canEdit = hasPermission('USUARIOS:EDITAR');
+  const canChangeStatus = hasPermission('USUARIOS:CAMBIAR_ESTADO');
   const [users, setUsers] = useState<UserInfo[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<UserInfo | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+
+  const roleOptions = roles
+    .map((role) => ({ value: role.name, label: ROLE_LABELS[role.name] ?? role.name.replace('ROLE_', '') }))
+    .filter((role) => role.value !== 'ROLE_ADMIN' || me?.roleName === 'ROLE_ADMIN');
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -64,6 +73,7 @@ export default function Users() {
 
   useEffect(() => {
     fetchUsers();
+    getRoles().then(setRoles).catch(() => setRoles([]));
   }, [fetchUsers]);
 
   const openDetail = async (id: number) => {
@@ -134,7 +144,7 @@ export default function Users() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pag.pageItems.map((user) => {
             const role = user.roleName || 'SIN ROL';
-            const label = ROLE_LABELS[role] || role;
+            const label = ROLE_LABELS[role] || role.replace('ROLE_', '');
             const isOnline = user.lastLogin
               ? Date.now() - new Date(user.lastLogin).getTime() < 5 * 60 * 1000
               : false;
@@ -222,6 +232,9 @@ export default function Users() {
         <UserEditModal
           key={selected.id}
           user={selected}
+          roleOptions={roleOptions.length ? roleOptions : ROLE_OPTIONS.map((value) => ({ value, label: ROLE_LABELS[value] ?? value }))}
+          canEdit={canEdit}
+          canChangeStatus={canChangeStatus}
           canDeactivate={selected.id !== me?.id}
           onClose={() => setSelected(null)}
           onSaved={replaceUser}
@@ -230,7 +243,7 @@ export default function Users() {
 
       {showCreate && (
         <UserCreateModal
-          roleOptions={ROLE_OPTIONS.filter((r) => r !== 'ROLE_ADMIN' || me?.roleName === 'ROLE_ADMIN')}
+          roleOptions={roleOptions.length ? roleOptions : ROLE_OPTIONS.map((value) => ({ value, label: ROLE_LABELS[value] ?? value }))}
           onClose={() => setShowCreate(false)}
           onCreated={fetchUsers}
         />
@@ -244,7 +257,7 @@ function UserCreateModal({
   onClose,
   onCreated,
 }: {
-  roleOptions: string[];
+  roleOptions: { value: string; label: string }[];
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -254,7 +267,7 @@ function UserCreateModal({
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [roleName, setRoleName] = useState(roleOptions[0] || ROLE_OPTIONS[0]);
+  const [roleName, setRoleName] = useState(roleOptions[0]?.value || ROLE_OPTIONS[0]);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
@@ -366,9 +379,9 @@ function UserCreateModal({
               Rol <span className="text-red-500">*</span>
             </label>
             <select id="nu-role" value={roleName} onChange={(e) => setRoleName(e.target.value)} className={fieldClass}>
-              {roleOptions.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
+              {roleOptions.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
                 </option>
               ))}
             </select>
@@ -426,11 +439,17 @@ function UserCreateModal({
 
 function UserEditModal({
   user,
+  roleOptions,
+  canEdit,
+  canChangeStatus,
   canDeactivate,
   onClose,
   onSaved,
 }: {
   user: UserInfo;
+  roleOptions: { value: string; label: string }[];
+  canEdit: boolean;
+  canChangeStatus: boolean;
   canDeactivate: boolean;
   onClose: () => void;
   onSaved: (u: UserInfo) => void;
@@ -440,12 +459,13 @@ function UserEditModal({
   const [lastName, setLastName] = useState(user.lastName);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone || '');
-  const [roleName, setRoleName] = useState(user.roleName || ROLE_OPTIONS[0]);
+  const [roleName, setRoleName] = useState(user.roleName || roleOptions[0]?.value || ROLE_OPTIONS[0]);
   const [newPassword, setNewPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
 
   const handleSave = async () => {
+    if (!canEdit) return;
     setSaving(true);
     try {
       const payload: UpdateUserPayload = {
@@ -468,6 +488,7 @@ function UserEditModal({
   };
 
   const handleToggle = async () => {
+    if (!canChangeStatus) return;
     setToggling(true);
     try {
       const updated = await setUserActive(user.id, !user.active);
@@ -564,10 +585,10 @@ function UserEditModal({
             <label htmlFor="usr-role" className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-200">
               Rol
             </label>
-            <select id="usr-role" value={roleName} onChange={(e) => setRoleName(e.target.value)} className={fieldClass}>
-              {ROLE_OPTIONS.map((r) => (
-                <option key={r} value={r}>
-                  {ROLE_LABELS[r]}
+            <select id="usr-role" value={roleName} onChange={(e) => setRoleName(e.target.value)} disabled={!canEdit} className={fieldClass}>
+              {roleOptions.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
                 </option>
               ))}
             </select>
@@ -600,7 +621,7 @@ function UserEditModal({
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               onClick={handleToggle}
-              disabled={toggling || (!canDeactivate && user.active)}
+              disabled={!canChangeStatus || toggling || (!canDeactivate && user.active)}
               title={!canDeactivate && user.active ? 'No puedes desactivar tu propia cuenta' : undefined}
               className={cn(
                 'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
@@ -614,7 +635,7 @@ function UserEditModal({
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={!canEdit || saving}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Save size={15} />

@@ -18,6 +18,9 @@ const Reception = lazy(() => import('./pages/Reception'));
 const MyWork = lazy(() => import('./pages/MyWork'));
 const Inventory = lazy(() => import('./pages/Inventory'));
 const Billing = lazy(() => import('./pages/Billing'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const Purchases = lazy(() => import('./pages/Purchases'));
+const Supply = lazy(() => import('./pages/Supply'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Audit = lazy(() => import('./pages/Audit'));
 const Users = lazy(() => import('./pages/Users'));
@@ -96,6 +99,9 @@ function App() {
           <Route path="mi-trabajo" element={<RequirePermission permission="MI_TRABAJO:VER"><MyWork /></RequirePermission>} />
           <Route path="inventario" element={<RequirePermission permission="PRODUCTOS:VER"><Inventory /></RequirePermission>} />
           <Route path="facturacion" element={<RequirePermission permission="FACTURAS:VER"><Billing /></RequirePermission>} />
+          <Route path="proveedores" element={<RequirePermission permission="PROVEEDORES:VER"><Suppliers /></RequirePermission>} />
+          <Route path="compras" element={<RequirePermission permission="COMPRAS:VER"><Purchases /></RequirePermission>} />
+          <Route path="abastecimiento" element={<RequirePermission permission="COMPRAS:VER"><Supply /></RequirePermission>} />
           <Route path="reportes" element={<RequirePermission permission="REPORTES:VER"><Reports /></RequirePermission>} />
           <Route path="auditoria" element={<RequirePermission permission="AUDITORIA:VER"><Audit /></RequirePermission>} />
           <Route path="usuarios" element={<RequirePermission permission="USUARIOS:VER"><Users /></RequirePermission>} />

@@ -99,4 +99,10 @@ public class FacturaController {
             @RequestParam String paymentMethod) {
         return ResponseEntity.ok(facturaService.pagarFactura(id, paymentMethod));
     }
+
+    @PatchMapping("/{id}/anular")
+    @PreAuthorize("hasAuthority('FACTURAS:ELIMINAR')")
+    public ResponseEntity<Map<String, Object>> anularFactura(@PathVariable Long id) {
+        return ResponseEntity.ok(facturaService.anularFactura(id));
+    }
 }

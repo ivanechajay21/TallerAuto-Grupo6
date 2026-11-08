@@ -63,6 +63,27 @@ class FacturaServiceTest {
     }
 
     @Test
+    void anulaComprobantePendienteYAudita() {
+        Factura factura = Factura.builder().id(5L).invoiceNumber("F001-00000005").status("PENDING").build();
+        when(facturas.findById(5L)).thenReturn(Optional.of(factura));
+        when(facturas.save(factura)).thenReturn(factura);
+
+        Map<String, Object> result = service().anularFactura(5L);
+
+        assertEquals("CANCELLED", result.get("status"));
+        verify(auditoria).registrar(eq("UPDATE"), eq("FACTURA"), eq(5L), contains("Anulación"));
+    }
+
+    @Test
+    void rechazaAnularComprobantePagado() {
+        Factura factura = Factura.builder().id(5L).invoiceNumber("F001-00000005").status("PAID").build();
+        when(facturas.findById(5L)).thenReturn(Optional.of(factura));
+
+        assertThrows(IllegalArgumentException.class, () -> service().anularFactura(5L));
+        verify(facturas, never()).save(any());
+    }
+
+    @Test
     void permiteFacturarOrdenEntregada() {
         OrdenTrabajo orden = orden("ENTREGADO", "20123456789");
         orden.getItems().add(item("Servicio", "100.00", 1));

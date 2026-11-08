@@ -61,3 +61,8 @@ export const payInvoice = async (id: number, paymentMethod: string): Promise<Inv
   const response = await api.patch(`/facturas/${id}/pagar`, null, { params: { paymentMethod } });
   return response.data;
 };
+
+export const cancelInvoice = async (id: number): Promise<Invoice> => {
+  const response = await api.patch(`/facturas/${id}/anular`);
+  return response.data;
+};
