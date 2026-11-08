@@ -58,6 +58,18 @@ class ContratoProveedorServiceTest {
                 .crear(99L, contract(LocalDate.now(), LocalDate.now().plusDays(1))));
     }
 
+    @Test
+    void rechazaContratoConFechasNulas() {
+        when(suppliers.findById(5L)).thenReturn(Optional.of(Proveedor.builder().id(5L).build()));
+        ContratoProveedor input = ContratoProveedor.builder().currency("PEN")
+                .discountPercentage(BigDecimal.ZERO).paymentDays(30)
+                .minimumPurchase(BigDecimal.ZERO).build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new ContratoProveedorService(contracts, suppliers, audit).crear(5L, input));
+        verify(contracts, never()).save(any());
+    }
+
     private ContratoProveedor contract(LocalDate start, LocalDate end) {
         return ContratoProveedor.builder().startsAt(start).endsAt(end).currency("PEN")
                 .discountPercentage(BigDecimal.ZERO).paymentDays(30).minimumPurchase(BigDecimal.ZERO).terms("Pago a crédito").build();

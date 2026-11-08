@@ -26,10 +26,10 @@ class CuentaPorPagarServiceTest {
     @Test
     void registraPagoParcialYConservaSaldo() {
         FacturaProveedor invoice = invoice("100");
-        when(invoices.findById(1L)).thenReturn(Optional.of(invoice));
+        when(invoices.findByIdForUpdate(1L)).thenReturn(Optional.of(invoice));
         when(invoices.save(invoice)).thenReturn(invoice);
 
-        FacturaProveedor result = service().pagar(1L, new RegistrarPagoProveedorRequest(new BigDecimal("40"), "TRANSFERENCIA", "OP-1"));
+        FacturaProveedor result = service().pagar(1L, new RegistrarPagoProveedorRequest(new BigDecimal("40"), "CARD", "OP-1"));
 
         assertEquals(new BigDecimal("60"), result.getBalance());
         assertEquals("PARCIAL", result.getStatus());
@@ -40,10 +40,10 @@ class CuentaPorPagarServiceTest {
     @Test
     void marcaFacturaPagadaAlCubrirSaldo() {
         FacturaProveedor invoice = invoice("75");
-        when(invoices.findById(1L)).thenReturn(Optional.of(invoice));
+        when(invoices.findByIdForUpdate(1L)).thenReturn(Optional.of(invoice));
         when(invoices.save(invoice)).thenReturn(invoice);
 
-        FacturaProveedor result = service().pagar(1L, new RegistrarPagoProveedorRequest(new BigDecimal("75"), "EFECTIVO", null));
+        FacturaProveedor result = service().pagar(1L, new RegistrarPagoProveedorRequest(new BigDecimal("75"), "CASH", null));
 
         assertEquals(BigDecimal.ZERO, result.getBalance());
         assertEquals("PAGADA", result.getStatus());
@@ -52,10 +52,20 @@ class CuentaPorPagarServiceTest {
     @Test
     void impidePagoMayorQueSaldo() {
         FacturaProveedor invoice = invoice("50");
-        when(invoices.findById(1L)).thenReturn(Optional.of(invoice));
+        when(invoices.findByIdForUpdate(1L)).thenReturn(Optional.of(invoice));
 
         assertThrows(IllegalArgumentException.class, () -> service().pagar(1L,
-                new RegistrarPagoProveedorRequest(new BigDecimal("51"), "EFECTIVO", null)));
+                new RegistrarPagoProveedorRequest(new BigDecimal("51"), "CASH", null)));
+        verify(payments, never()).save(any());
+    }
+
+    @Test
+    void rechazaMetodoDePagoNoPermitido() {
+        FacturaProveedor invoice = invoice("50");
+        when(invoices.findByIdForUpdate(1L)).thenReturn(Optional.of(invoice));
+
+        assertThrows(IllegalArgumentException.class, () -> service().pagar(1L,
+                new RegistrarPagoProveedorRequest(new BigDecimal("10"), "BITCOIN", null)));
         verify(payments, never()).save(any());
     }
 

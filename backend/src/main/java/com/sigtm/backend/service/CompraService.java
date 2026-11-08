@@ -1,5 +1,6 @@
 package com.sigtm.backend.service;
 
+import com.sigtm.backend.dto.ComprasResponses;
 import com.sigtm.backend.dto.CrearOrdenCompraRequest;
 import com.sigtm.backend.dto.RecepcionarCompraRequest;
 import com.sigtm.backend.dto.DevolverCompraRequest;
@@ -193,6 +194,11 @@ public class CompraService {
 
     @Transactional(readOnly = true)
     public List<DevolucionCompra> devoluciones(Long id) { obtener(id); return returns.findByPurchaseOrderIdOrderByReturnedAtDesc(id); }
+
+    @Transactional(readOnly = true)
+    public List<ComprasResponses.DevolucionCompraResponse> devolucionesDto(Long id) {
+        return devoluciones(id).stream().map(ComprasResponses.DevolucionCompraResponse::from).toList();
+    }
 
     @Transactional(readOnly = true)
     public List<HistorialOrdenCompra> historial(Long id) {

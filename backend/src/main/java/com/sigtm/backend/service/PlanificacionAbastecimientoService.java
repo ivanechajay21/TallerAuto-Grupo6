@@ -1,5 +1,6 @@
 package com.sigtm.backend.service;
 
+import com.sigtm.backend.dto.ComprasResponses;
 import com.sigtm.backend.dto.CrearPlanCompraRequest;
 import com.sigtm.backend.dto.RegistrarPronosticoDemandaRequest;
 import com.sigtm.backend.exception.ResourceNotFoundException;
@@ -42,10 +43,21 @@ public class PlanificacionAbastecimientoService {
         return saved;
     }
 
+    @Transactional
+    public ComprasResponses.PronosticoDemandaResponse registrarPronosticoDto(Long productId,
+            RegistrarPronosticoDemandaRequest request) {
+        return ComprasResponses.PronosticoDemandaResponse.from(registrarPronostico(productId, request));
+    }
+
     @Transactional(readOnly = true)
     public List<PronosticoDemanda> listarPronosticos(String period) {
         validarPeriodo(period);
         return forecasts.findByPeriodOrderByProductNameAsc(period);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ComprasResponses.PronosticoDemandaResponse> listarPronosticosDto(String period) {
+        return listarPronosticos(period).stream().map(ComprasResponses.PronosticoDemandaResponse::from).toList();
     }
 
     /** Genera un borrador calculando demanda prevista + seguridad - stock disponible. */
@@ -65,6 +77,11 @@ public class PlanificacionAbastecimientoService {
         return guardarPlan(plan, "Plan generado desde pronósticos");
     }
 
+    @Transactional
+    public ComprasResponses.PlanCompraResponse generarDesdePronosticosDto(String period, String notes) {
+        return ComprasResponses.PlanCompraResponse.from(generarDesdePronosticos(period, notes));
+    }
+
     /** Permite al responsable crear un plan manual para necesidades no pronosticadas. */
     @Transactional
     public PlanCompra crearPlan(CrearPlanCompraRequest request) {
@@ -79,11 +96,26 @@ public class PlanificacionAbastecimientoService {
         return guardarPlan(plan, "Plan creado manualmente");
     }
 
+    @Transactional
+    public ComprasResponses.PlanCompraResponse crearPlanDto(CrearPlanCompraRequest request) {
+        return ComprasResponses.PlanCompraResponse.from(crearPlan(request));
+    }
+
     @Transactional(readOnly = true)
     public List<PlanCompra> listarPlanes() { return plans.findAllByOrderByCreatedAtDesc(); }
 
     @Transactional(readOnly = true)
+    public List<ComprasResponses.PlanCompraResponse> listarPlanesDto() {
+        return listarPlanes().stream().map(ComprasResponses.PlanCompraResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
     public PlanCompra obtenerPlan(Long id) { return plan(id); }
+
+    @Transactional(readOnly = true)
+    public ComprasResponses.PlanCompraResponse obtenerPlanDto(Long id) {
+        return ComprasResponses.PlanCompraResponse.from(obtenerPlan(id));
+    }
 
     /** Envía el plan al flujo existente; no crea una orden de compra directamente. */
     @Transactional
@@ -104,6 +136,11 @@ public class PlanificacionAbastecimientoService {
         audit.registrar("CREATE", "SOLICITUD_COMPRA", request.getId(), "Solicitud generada desde " + plan.getCode());
         audit.registrar("UPDATE", "PLAN_COMPRA", plan.getId(), "Plan convertido en " + request.getCode());
         return request;
+    }
+
+    @Transactional
+    public ComprasResponses.SolicitudCompraResponse convertirEnSolicitudDto(Long id) {
+        return ComprasResponses.SolicitudCompraResponse.from(convertirEnSolicitud(id));
     }
 
     private PlanCompra nuevoPlan(String period, String notes) {

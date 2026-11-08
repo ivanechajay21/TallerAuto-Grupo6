@@ -13,6 +13,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,5 +67,30 @@ class PresupuestoCompraServiceTest {
 
         assertEquals(BigDecimal.ZERO, state.committedAmount());
         assertEquals("DISPONIBLE", state.status());
+    }
+
+    @Test
+    void actualizaElPresupuestoDelMismoPeriodoEnLugarDeDuplicarlo() {
+        PresupuestoCompra existing = PresupuestoCompra.builder()
+                .id(9L).period("2026-11").limitAmount(new BigDecimal("500"))
+                .alertPercentage(70).active(true).build();
+        when(budgets.findByPeriod("2026-11")).thenReturn(Optional.of(existing));
+        when(budgets.save(any(PresupuestoCompra.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PresupuestoCompra saved = new PresupuestoCompraService(budgets, orders, audit)
+                .guardar(PresupuestoCompra.builder().period("2026-11")
+                        .limitAmount(new BigDecimal("800")).alertPercentage(90).build());
+
+        assertEquals(9L, saved.getId());
+        assertEquals(new BigDecimal("800"), saved.getLimitAmount());
+        assertEquals(90, saved.getAlertPercentage());
+        verify(budgets).save(existing);
+    }
+
+    @Test
+    void rechazaPeriodoConFormatoInvalido() {
+        assertThrows(IllegalArgumentException.class, () -> new PresupuestoCompraService(budgets, orders, audit)
+                .guardar(PresupuestoCompra.builder().period("2026/11")
+                        .limitAmount(new BigDecimal("800")).alertPercentage(90).build()));
     }
 }
