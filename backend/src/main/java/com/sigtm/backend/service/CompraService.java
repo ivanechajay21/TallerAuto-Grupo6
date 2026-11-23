@@ -150,11 +150,12 @@ public class CompraService {
             recepcion.getItems().add(DetalleRecepcionCompra.builder().receipt(recepcion).purchaseItem(detalle)
                     .product(detalle.getProduct()).quantity(linea.quantity()).unitCost(detalle.getUnitCost()).build());
         }
+        String estadoAnterior = orden.getStatus();
         orden.setStatus(orden.getItems().stream().allMatch(i -> i.getReceivedQuantity() >= i.getRequestedQuantity())
                 ? "RECIBIDA" : "PARCIAL");
         ordenCompraRepository.save(orden);
         RecepcionCompra guardada = recepcionCompraRepository.save(recepcion);
-        evento(orden, "RECEPCION", "PENDIENTE", orden.getStatus(), "Recepción " + guardada.getReceiptNumber());
+        evento(orden, "RECEPCION", estadoAnterior, orden.getStatus(), "Recepción " + guardada.getReceiptNumber());
         auditoriaService.registrar("CREATE", "RECEPCION_COMPRA", guardada.getId(),
                 "Recepción " + guardada.getReceiptNumber() + " para " + orden.getCode());
         return guardada;
@@ -183,8 +184,10 @@ public class CompraService {
     public OrdenCompra aceptarCotizacion(Long id) {
         OrdenCompra cotizacion = obtener(id);
         if (!"COTIZACION".equals(cotizacion.getStatus())) throw new IllegalArgumentException("El documento no es una cotización vigente");
-        cotizacion.setStatus("PENDIENTE_APROBACION");
-        evento(cotizacion, "COTIZACION_ACEPTADA", "COTIZACION", "PENDIENTE_APROBACION", "Oferta seleccionada");
+        String nuevoEstado = requiereAprobacion(cotizacion.getTotal())
+                ? "PENDIENTE_APROBACION" : "PENDIENTE";
+        cotizacion.setStatus(nuevoEstado);
+        evento(cotizacion, "COTIZACION_ACEPTADA", "COTIZACION", nuevoEstado, "Oferta seleccionada");
         auditoriaService.registrar("UPDATE", "COTIZACION", cotizacion.getId(), "Cotización aceptada: " + cotizacion.getCode());
         return ordenCompraRepository.save(cotizacion);
     }

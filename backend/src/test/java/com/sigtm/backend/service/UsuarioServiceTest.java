@@ -38,6 +38,7 @@ class UsuarioServiceTest {
     @Mock private RolRepository rolRepository;
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private AuditoriaService auditoriaService;
+    @Mock private PresenceService presenceService;
 
     @InjectMocks private UsuarioService usuarioService;
 
@@ -133,7 +134,7 @@ class UsuarioServiceTest {
 
         CrearUsuarioRequest solicitud = new CrearUsuarioRequest(
                 "Nuevo", "Admin", "nuevo-admin", "nuevo-admin@sigtm.test",
-                null, "ROLE_ADMIN", "password-seguro-123");
+                null, "ROLE_ADMIN", "PasswordSeguro123!");
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> usuarioService.crearUsuario(solicitud, 9L));

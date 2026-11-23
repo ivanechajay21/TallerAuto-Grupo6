@@ -1,9 +1,11 @@
 package com.sigtm.backend.security.jwt;
 
+import com.sigtm.backend.security.CookieNames;
 import com.sigtm.backend.security.services.UserDetailsServiceImpl;
 import com.sigtm.backend.security.services.UserDetailsImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -85,6 +87,16 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     }
 
     private String parseJwt(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (CookieNames.SESSION.equals(cookie.getName())
+                        && StringUtils.hasText(cookie.getValue())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        // Compatibilidad con clientes API que usan Bearer; el frontend usa cookie.
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);

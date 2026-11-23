@@ -67,6 +67,22 @@ class ReposicionServiceTest {
     }
 
     @Test
+    void ignoraUnaPoliticaInactivaAlCalcularSugerencias() {
+        Producto producto = producto(4L, "ACE-04", 2, 5);
+        PoliticaReposicion policy = PoliticaReposicion.builder()
+                .product(producto).reorderPoint(10).minimumLot(5).targetStock(20)
+                .leadTimeDays(3).active(false).build();
+        when(productoRepository.findByActiveTrue()).thenReturn(List.of(producto));
+        when(politicaRepository.findByProductId(4L)).thenReturn(Optional.of(policy));
+
+        var sugerencias = service().sugerencias();
+
+        assertEquals(1, sugerencias.size());
+        assertEquals(8, sugerencias.getFirst().get("suggestedQuantity"));
+        assertEquals(false, sugerencias.getFirst().get("policyApplied"));
+    }
+
+    @Test
     void creaSolicitudConLineasYAuditoria() {
         Producto producto = producto(3L, "BUJ-01", 1, 4);
         when(productoRepository.findById(3L)).thenReturn(Optional.of(producto));

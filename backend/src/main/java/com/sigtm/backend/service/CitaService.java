@@ -6,14 +6,25 @@ import com.sigtm.backend.model.Vehiculo;
 import com.sigtm.backend.repository.CitaRepository;
 import com.sigtm.backend.repository.ClienteRepository;
 import com.sigtm.backend.repository.VehiculoRepository;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -31,6 +42,7 @@ public class CitaService {
     private final ClienteRepository clienteRepository;
     private final VehiculoRepository vehiculoRepository;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     /**
      * Lista todas las citas registradas en el sistema.
@@ -43,6 +55,85 @@ public class CitaService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerTodas() {
         return citaRepository.findAll().stream().map(this::aMapa).toList();
+    }
+
+    /**
+     * Busca citas con pestaña, búsqueda, filtro de estado, paginación y resumen.
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página; se limita a 100
+     * @param tab    {@code proximas} o {@code historial}
+     * @param search texto libre opcional
+     * @param status estado exacto o {@code TODAS}
+     * @return página de citas y resumen de la agenda
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(
+            int page,
+            int size,
+            String tab,
+            String search,
+            String status
+    ) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String pestaña = "historial".equalsIgnoreCase(tab) ? "historial" : "proximas";
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+        String estado = status == null ? "TODAS" : status.trim().toUpperCase(Locale.ROOT);
+        List<String> activas = List.of("PENDING", "CONFIRMED", "IN_PROCESS");
+
+        Specification<Cita> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add("historial".equals(pestaña)
+                    ? cb.not(root.get("status").in(activas))
+                    : root.get("status").in(activas));
+
+            if (!"TODAS".equals(estado)) {
+                predicates.add(cb.equal(root.get("status"), estado));
+            }
+            if (texto != null && !texto.isBlank()) {
+                Join<Cita, Cliente> cliente = root.join("customer", JoinType.LEFT);
+                Join<Cita, Vehiculo> vehiculo = root.join("vehicle", JoinType.LEFT);
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("requestedService")), like),
+                        cb.like(cb.lower(cliente.get("firstName")), like),
+                        cb.like(cb.lower(cliente.get("lastName")), like),
+                        cb.like(cb.lower(cliente.get("documentNumber")), like),
+                        cb.like(cb.lower(vehiculo.get("plate")), like),
+                        cb.like(cb.lower(vehiculo.get("brand")), like),
+                        cb.like(cb.lower(vehiculo.get("model")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        Sort orden = "historial".equals(pestaña)
+                ? Sort.by(Sort.Direction.DESC, "appointmentDate")
+                    .and(Sort.by(Sort.Direction.DESC, "appointmentTime"))
+                : Sort.by(Sort.Direction.ASC, "appointmentDate")
+                    .and(Sort.by(Sort.Direction.ASC, "appointmentTime"));
+
+        Page<Cita> resultado = citaRepository.findAll(spec, PageRequest.of(pageIndex, pageSize, orden));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent().stream().map(this::aMapa).toList());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumenCitas(activas));
+        return respuesta;
+    }
+
+    private Map<String, Object> resumenCitas(List<String> activas) {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("upcoming", citaRepository.countByStatusIn(activas));
+        resumen.put("confirmed", citaRepository.countByStatus("CONFIRMED"));
+        resumen.put("inProcess", citaRepository.countByStatus("IN_PROCESS"));
+        resumen.put("completed", citaRepository.countByStatus("COMPLETED"));
+        resumen.put("history", citaRepository.countByStatusNotIn(activas));
+        return resumen;
     }
 
     /**
@@ -121,9 +212,89 @@ public class CitaService {
         String anterior = cita.getStatus();
         cita.setStatus(status);
         Cita guardada = citaRepository.save(cita);
+        if ("CONFIRMED".equalsIgnoreCase(status)) {
+            String cliente = guardada.getCustomer() == null
+                    ? "cliente"
+                    : guardada.getCustomer().getFirstName() + " " + guardada.getCustomer().getLastName();
+            notificacionService.notificarRol(
+                    List.of("ROLE_RECEPTIONIST", "ROLE_ADMIN", "ROLE_MANAGER"),
+                    "CITAS",
+                    "Cita confirmada",
+                    "La cita de " + cliente + " para el vehículo "
+                            + (guardada.getVehicle() == null ? "—" : guardada.getVehicle().getPlate())
+                            + " quedó confirmada.",
+                    "/citas");
+        }
         auditoriaService.registrar("STATUS", "CITA", guardada.getId(),
                 "Cita pasó de " + anterior + " a " + status + " (vehículo " + guardada.getVehicle().getPlate() + ")");
         return aMapa(guardada);
+    }
+
+    /**
+     * Actualiza la fecha, hora, servicio y observaciones de una cita pendiente.
+     *
+     * <p>Por seguridad solo se permiten cambios mientras la cita está en estado
+     * {@code PENDING}; una cita confirmada, en proceso o cerrada debe gestionarse
+     * desde su flujo de estado. El cambio queda auditado.</p>
+     *
+     * @param id    identificador de la cita
+     * @param datos nuevos datos de la cita
+     * @return la cita actualizada en formato {@code Map}
+     */
+    @Transactional
+    public Map<String, Object> actualizarCita(Long id, Cita datos) {
+        Cita cita = citaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+        if (!"PENDING".equalsIgnoreCase(cita.getStatus())) {
+            throw new IllegalArgumentException("Solo se pueden editar citas pendientes");
+        }
+        if (datos.getAppointmentDate() == null || datos.getAppointmentTime() == null
+                || datos.getRequestedService() == null || datos.getRequestedService().isBlank()) {
+            throw new IllegalArgumentException("La fecha, la hora y el servicio son obligatorios");
+        }
+
+        cita.setAppointmentDate(datos.getAppointmentDate());
+        cita.setAppointmentTime(datos.getAppointmentTime());
+        cita.setRequestedService(datos.getRequestedService().trim());
+        cita.setObservations(datos.getObservations() == null || datos.getObservations().isBlank()
+                ? null : datos.getObservations().trim());
+        if (datos.getPriority() != null && !datos.getPriority().isBlank()) {
+            cita.setPriority(datos.getPriority().trim());
+        }
+        if (datos.getEstimatedDurationMinutes() != null) {
+            cita.setEstimatedDurationMinutes(datos.getEstimatedDurationMinutes());
+        }
+
+        Cita guardada = citaRepository.save(cita);
+        auditoriaService.registrar("UPDATE", "CITA", guardada.getId(),
+                "Actualización de cita para el vehículo "
+                        + (guardada.getVehicle() == null ? "sin vehículo" : guardada.getVehicle().getPlate()));
+        return aMapa(guardada);
+    }
+
+    /**
+     * Elimina una cita pendiente.
+     *
+     * <p>No se permite eliminar citas confirmadas, en proceso o cerradas. Si la
+     * cita ya originó una orden de trabajo, la restricción de integridad impide
+     * borrarla y se devuelve un mensaje funcional.</p>
+     *
+     * @param id identificador de la cita
+     */
+    @Transactional
+    public void eliminarCita(Long id) {
+        Cita cita = citaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cita no encontrada"));
+        if (!"PENDING".equalsIgnoreCase(cita.getStatus())) {
+            throw new IllegalArgumentException("Solo se pueden eliminar citas pendientes");
+        }
+        try {
+            citaRepository.delete(cita);
+            citaRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            throw new IllegalStateException("No se puede eliminar una cita que ya tiene una orden de trabajo asociada");
+        }
+        auditoriaService.registrar("DELETE", "CITA", id, "Cita pendiente eliminada");
     }
 
     private Map<String, Object> aMapa(Cita a) {

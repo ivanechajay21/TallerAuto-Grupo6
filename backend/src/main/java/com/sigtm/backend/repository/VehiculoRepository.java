@@ -2,6 +2,7 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.Vehiculo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * permite recuperar su flota de vehículos.</p>
  */
 @Repository
-public interface VehiculoRepository extends JpaRepository<Vehiculo, Long> {
+public interface VehiculoRepository extends JpaRepository<Vehiculo, Long>, JpaSpecificationExecutor<Vehiculo> {
     /**
      * Busca un vehículo por su placa.
      *
@@ -38,4 +39,10 @@ public interface VehiculoRepository extends JpaRepository<Vehiculo, Long> {
      * @return vehículos asociados al cliente.
      */
     List<Vehiculo> findByCustomerId(Long customerId);
+
+    long countByActiveTrue();
+
+    long countByActiveFalse();
+
+    long countByCurrentMileageGreaterThan(Integer mileage);
 }

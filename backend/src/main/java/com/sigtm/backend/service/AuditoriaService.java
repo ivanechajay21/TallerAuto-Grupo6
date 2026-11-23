@@ -100,7 +100,7 @@ public class AuditoriaService {
     /**
      * Lista las acciones de auditoría distintas registradas en el sistema.
      *
-     * <p>Cada acción se devuelve con su código y una etiqueta traducida al español para
+     * <p>Cada acción se devuelve con su código y  para
      * su uso en los filtros de la interfaz.</p>
      *
      * @return las acciones ordenadas alfabéticamente como pares {@code action}/{@code label}

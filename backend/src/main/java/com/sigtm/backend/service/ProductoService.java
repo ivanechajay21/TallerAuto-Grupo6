@@ -10,7 +10,11 @@ import com.sigtm.backend.repository.MovimientoInventarioRepository;
 import com.sigtm.backend.repository.ProductoRepository;
 import com.sigtm.backend.repository.UsuarioRepository;
 import com.sigtm.backend.security.services.UserDetailsImpl;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,7 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Administra el inventario de repuestos: catálogo, precios y movimientos de stock.
@@ -74,6 +82,85 @@ public class ProductoService {
                         || (p.getBrand() != null && p.getBrand().toLowerCase().contains(q))
                         || (p.getCategory() != null && p.getCategory().toLowerCase().contains(q)))
                 .toList();
+    }
+
+    /**
+     * Busca productos con búsqueda, filtros de categoría/stock, paginación y resumen.
+     *
+     * @param page             página solicitada, empezando en cero
+     * @param size             tamaño de página; se limita a 100
+     * @param incluirInactivos {@code true} para incluir productos desactivados
+     * @param search           texto libre opcional
+     * @param category         categoría exacta o {@code TODAS}
+     * @param stock            {@code TODOS}, {@code BAJO}, {@code AGOTADO} o {@code INACTIVO}
+     * @return página de productos y resumen del inventario
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(
+            int page,
+            int size,
+            boolean incluirInactivos,
+            String search,
+            String category,
+            String stock
+    ) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+        String categoria = category == null ? "TODAS" : category.trim();
+        String filtroStock = stock == null ? "TODOS" : stock.trim().toUpperCase(Locale.ROOT);
+
+        Specification<Producto> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (!incluirInactivos && !"INACTIVO".equals(filtroStock)) {
+                predicates.add(cb.isTrue(root.get("active")));
+            }
+            if (!"TODAS".equalsIgnoreCase(categoria) && !categoria.isBlank()) {
+                predicates.add(cb.equal(root.get("category"), categoria));
+            }
+            if ("BAJO".equals(filtroStock)) {
+                predicates.add(cb.greaterThan(root.get("currentStock"), 0));
+                predicates.add(cb.lessThanOrEqualTo(root.get("currentStock"), root.get("minStock")));
+            } else if ("AGOTADO".equals(filtroStock)) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("currentStock"), 0));
+            } else if ("INACTIVO".equals(filtroStock)) {
+                predicates.add(cb.isFalse(root.get("active")));
+            }
+            if (texto != null && !texto.isBlank()) {
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("code")), like),
+                        cb.like(cb.lower(root.get("name")), like),
+                        cb.like(cb.lower(root.get("brand")), like),
+                        cb.like(cb.lower(root.get("category")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        Page<Producto> resultado = productoRepository.findAll(
+                spec, PageRequest.of(pageIndex, pageSize, Sort.by(Sort.Direction.ASC, "name")));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumenInventario());
+        respuesta.put("categories", productoRepository.findCategorias());
+        return respuesta;
+    }
+
+    private Map<String, Object> resumenInventario() {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", productoRepository.count());
+        resumen.put("lowStock", productoRepository.countLowStock());
+        resumen.put("outOfStock", productoRepository.countOutOfStock());
+        resumen.put("inactive", productoRepository.countByActiveFalse());
+        BigDecimal valor = productoRepository.sumInventoryValue();
+        resumen.put("value", valor == null ? BigDecimal.ZERO : valor);
+        return resumen;
     }
 
     /**

@@ -81,6 +81,23 @@
 			<artifactId>poi-ooxml</artifactId>
 			<version>5.4.1</version>
 		</dependency>
+		<!-- Generación de documentos PDF en el servidor. -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>2.0.3</version>
+		</dependency>
+		<!-- Generación del código QR para el alta de MFA. -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
+		</dependency>
 		<!-- Utilidades de propósito general para colecciones, caché y concurrencia. -->
 		<dependency>
 			<groupId>com.google.guava</groupId>

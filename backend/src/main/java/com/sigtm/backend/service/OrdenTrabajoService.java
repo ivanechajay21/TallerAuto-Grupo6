@@ -5,14 +5,28 @@ import com.sigtm.backend.dto.ActualizarOrdenTrabajoRequest;
 import com.sigtm.backend.exception.ResourceNotFoundException;
 import com.sigtm.backend.model.*;
 import com.sigtm.backend.repository.*;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -52,6 +66,163 @@ public class OrdenTrabajoService {
     }
 
     /**
+     * Consulta paginada del tablero, con filtros y ordenamiento en servidor.
+     *
+     * <p>El tablero activo excluye las órdenes finalizadas; el historial las
+     * incluye exclusivamente. Los filtros por mecánico, sin mecánico o sin ítems
+     * se resuelven con subconsultas para no duplicar órdenes.</p>
+     *
+     * @param page             página solicitada, base cero
+     * @param size             tamaño de página, limitado a 100
+     * @param tab              {@code activas} o {@code historial}
+     * @param search           texto libre por OT, cliente, vehículo o mecánico
+     * @param status           estado exacto; {@code TODAS} o vacío lo omiten
+     * @param priority         prioridad exacta; {@code TODAS} o vacío la omiten
+     * @param mechanicId       mecánico asignado a algún ítem
+     * @param onlyUrgent       solo prioridad urgente
+     * @param onlyUnassigned   solo órdenes sin mecánico
+     * @param onlyNoItems      solo órdenes sin ítems
+     * @param onlyStale        solo órdenes con 7 días o más en taller
+     * @param sort             prioridad, antigua, reciente o total
+     * @return página de órdenes y resumen global de indicadores
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(
+            int page,
+            int size,
+            String tab,
+            String search,
+            String status,
+            String priority,
+            Long mechanicId,
+            boolean onlyUrgent,
+            boolean onlyUnassigned,
+            boolean onlyNoItems,
+            boolean onlyStale,
+            String sort
+    ) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String tabSeguro = "historial".equalsIgnoreCase(tab) ? "historial" : "activas";
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+
+        Specification<OrdenTrabajo> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(tabSeguro.equals("historial")
+                    ? cb.equal(root.get("status"), "FINALIZADO")
+                    : cb.notEqual(root.get("status"), "FINALIZADO"));
+
+            if (status != null && !status.isBlank() && !"TODAS".equalsIgnoreCase(status)) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            if (priority != null && !priority.isBlank() && !"TODAS".equalsIgnoreCase(priority)) {
+                predicates.add(cb.equal(cb.upper(root.get("priority")), priority.toUpperCase(Locale.ROOT)));
+            }
+            if (texto != null && !texto.isBlank()) {
+                Join<OrdenTrabajo, Cliente> cliente = root.join("customer", JoinType.LEFT);
+                Join<OrdenTrabajo, Vehiculo> vehiculo = root.join("vehicle", JoinType.LEFT);
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("orderNumber")), like),
+                        cb.like(cb.lower(cliente.get("firstName")), like),
+                        cb.like(cb.lower(cliente.get("lastName")), like),
+                        cb.like(cb.lower(cliente.get("documentNumber")), like),
+                        cb.like(cb.lower(vehiculo.get("plate")), like),
+                        cb.like(cb.lower(vehiculo.get("brand")), like),
+                        cb.like(cb.lower(vehiculo.get("model")), like)
+                ));
+            }
+            if (onlyUrgent) {
+                predicates.add(cb.equal(cb.upper(root.get("priority")), "URGENTE"));
+            }
+            if (mechanicId != null) {
+                Subquery<Long> asignadas = query.subquery(Long.class);
+                Root<ItemOrdenTrabajo> item = asignadas.from(ItemOrdenTrabajo.class);
+                asignadas.select(item.get("id")).where(
+                        cb.equal(item.get("workOrder"), root),
+                        cb.equal(item.get("mechanic").get("id"), mechanicId)
+                );
+                predicates.add(cb.exists(asignadas));
+            }
+            if (onlyUnassigned) {
+                Subquery<Long> asignadas = query.subquery(Long.class);
+                Root<ItemOrdenTrabajo> item = asignadas.from(ItemOrdenTrabajo.class);
+                asignadas.select(item.get("id")).where(
+                        cb.equal(item.get("workOrder"), root),
+                        cb.isNotNull(item.get("mechanic"))
+                );
+                predicates.add(cb.not(cb.exists(asignadas)));
+            }
+            if (onlyNoItems) {
+                Subquery<Long> items = query.subquery(Long.class);
+                Root<ItemOrdenTrabajo> item = items.from(ItemOrdenTrabajo.class);
+                items.select(item.get("id")).where(cb.equal(item.get("workOrder"), root));
+                predicates.add(cb.not(cb.exists(items)));
+            }
+            if (onlyStale) {
+                predicates.add(cb.lessThanOrEqualTo(
+                        root.get("receptionDate"), LocalDateTime.now().minusDays(7)));
+            }
+            query.distinct(true);
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        String ordenSolicitado = sort == null ? "prioridad" : sort.toLowerCase(Locale.ROOT);
+        Page<OrdenTrabajo> resultado;
+        if ("total".equals(ordenSolicitado)) {
+            List<OrdenTrabajo> todos = new ArrayList<>(ordenTrabajoRepository.findAll(spec));
+            todos.sort(Comparator.comparing(this::calcularTotal).reversed());
+            int desde = Math.min(pageIndex * pageSize, todos.size());
+            int hasta = Math.min(desde + pageSize, todos.size());
+            resultado = new PageImpl<>(todos.subList(desde, hasta), PageRequest.of(pageIndex, pageSize), todos.size());
+        } else {
+            Sort orden = switch (ordenSolicitado) {
+                case "antigua" -> Sort.by(Sort.Direction.ASC, "receptionDate");
+                case "reciente" -> Sort.by(Sort.Direction.DESC, "receptionDate");
+                default -> JpaSort.unsafe(
+                                "CASE WHEN priority = 'URGENTE' THEN 0 WHEN priority = 'ALTA' THEN 1 ELSE 2 END")
+                        .ascending()
+                        .and(Sort.by(Sort.Direction.ASC, "receptionDate"));
+            };
+            resultado = ordenTrabajoRepository.findAll(
+                    spec, PageRequest.of(pageIndex, pageSize, orden));
+        }
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent().stream().map(this::aRespuesta).toList());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumen());
+        return respuesta;
+    }
+
+    private Map<String, Object> resumen() {
+        long total = ordenTrabajoRepository.count();
+        long history = ordenTrabajoRepository.countByStatus("FINALIZADO");
+        long active = ordenTrabajoRepository.countByStatusNot("FINALIZADO");
+        BigDecimal valor = itemOrdenTrabajoRepository.sumarValorActivo();
+
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", total);
+        resumen.put("active", active);
+        resumen.put("history", history);
+        resumen.put("urgent", ordenTrabajoRepository.countByStatusNotAndPriorityIgnoreCase("FINALIZADO", "URGENTE"));
+        resumen.put("ready", ordenTrabajoRepository.countByStatus("LISTO_PARA_ENTREGA"));
+        resumen.put("estimatedValue", valor == null ? BigDecimal.ZERO : valor);
+        return resumen;
+    }
+
+    private BigDecimal calcularTotal(OrdenTrabajo orden) {
+        return (orden.getItems() == null ? List.<ItemOrdenTrabajo>of() : orden.getItems()).stream()
+                .map(item -> item.getPrice() != null
+                        ? item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity() != null ? item.getQuantity() : 1))
+                        : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /**
      * Obtiene una orden de trabajo con el detalle de sus ítems.
      *
      * @param id identificador de la orden
@@ -61,6 +232,22 @@ public class OrdenTrabajoService {
     @Transactional(readOnly = true)
     public Map<String, Object> obtenerPorId(Long id) {
         return aRespuesta(obtenerEntidadPorId(id));
+    }
+
+    /**
+     * Comprueba si un mecánico tiene algún trabajo asignado dentro de una orden.
+     *
+     * <p>Sirve para aplicar autorización a nivel de recurso cuando el usuario
+     * únicamente tiene el permiso {@code MI_TRABAJO:VER}.</p>
+     *
+     * @param orderId   identificador de la orden
+     * @param mechanicId identificador del mecánico
+     * @return {@code true} si la orden contiene al menos un ítem asignado al mecánico
+     */
+    @Transactional(readOnly = true)
+    public boolean puedeVerOrden(Long orderId, Long mechanicId) {
+        return orderId != null && mechanicId != null
+                && itemOrdenTrabajoRepository.existsByWorkOrderIdAndMechanicId(orderId, mechanicId);
     }
 
     /**

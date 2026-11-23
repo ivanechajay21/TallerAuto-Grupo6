@@ -2,9 +2,12 @@ package com.sigtm.backend.controller;
 
 import com.sigtm.backend.dto.GenerarFacturaRequest;
 import com.sigtm.backend.model.TipoComprobante;
+import com.sigtm.backend.service.FacturaPdfService;
 import com.sigtm.backend.service.FacturaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +29,7 @@ import java.util.Map;
 public class FacturaController {
 
     private final FacturaService facturaService;
+    private final FacturaPdfService facturaPdfService;
 
     // Acceso por permiso del módulo FACTURAS.
     /**
@@ -104,5 +108,29 @@ public class FacturaController {
     @PreAuthorize("hasAuthority('FACTURAS:ELIMINAR')")
     public ResponseEntity<Map<String, Object>> anularFactura(@PathVariable Long id) {
         return ResponseEntity.ok(facturaService.anularFactura(id));
+    }
+
+    /**
+     * Descarga el PDF del comprobante.
+     *
+     * <p>Exige {@code FACTURAS:VER} o {@code FACTURAS:EXPORTAR}. El documento
+     * se genera en el backend con los datos persistidos del taller y del
+     * comprobante.</p>
+     *
+     * @param id identificador de la factura o boleta
+     * @return archivo PDF (200)
+     */
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyAuthority('FACTURAS:VER', 'FACTURAS:EXPORTAR')")
+    public ResponseEntity<byte[]> descargarPdf(@PathVariable Long id) {
+        byte[] archivo = facturaPdfService.generar(id);
+        String nombre = "comprobante-" + id + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
+                .body(archivo);
     }
 }

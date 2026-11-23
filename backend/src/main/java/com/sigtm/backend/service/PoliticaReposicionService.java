@@ -42,6 +42,9 @@ public class PoliticaReposicionService {
 
     @Transactional
     public PoliticaReposicion guardar(Long productId, Long supplierId, PoliticaReposicion data) {
+        if (data == null) {
+            throw new IllegalArgumentException("Los datos de la política son obligatorios");
+        }
         Producto product = products.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado"));
         Proveedor supplier = supplierId == null ? null : suppliers.findById(supplierId)

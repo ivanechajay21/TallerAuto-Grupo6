@@ -2,12 +2,14 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.Producto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,7 +20,7 @@ import java.util.Optional;
  * en operaciones concurrentes.</p>
  */
 @Repository
-public interface ProductoRepository extends JpaRepository<Producto, Long> {
+public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSpecificationExecutor<Producto> {
     /**
      * Busca un producto por su código.
      *
@@ -56,4 +58,20 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Producto p where p.id = :id")
     Optional<Producto> findWithLockingById(@Param("id") Long id);
+
+    long countByActiveTrue();
+
+    long countByActiveFalse();
+
+    @Query("select count(p) from Producto p where p.currentStock > 0 and p.currentStock <= p.minStock")
+    long countLowStock();
+
+    @Query("select count(p) from Producto p where p.currentStock <= 0")
+    long countOutOfStock();
+
+    @Query("select coalesce(sum(p.salePrice * p.currentStock), 0) from Producto p")
+    BigDecimal sumInventoryValue();
+
+    @Query("select distinct p.category from Producto p where p.category is not null and p.category <> '' order by p.category")
+    List<String> findCategorias();
 }

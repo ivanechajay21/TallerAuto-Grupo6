@@ -9,20 +9,13 @@ import java.util.List;
 /**
  * Respuesta de una autenticación correcta.
  *
- * <p>Transporta el token JWT emitido y los datos de perfil que el frontend
- * necesita para construir la sesión: identificador, nombre de usuario,
- * correo, roles, nombre completo, imagen de avatar y fecha del último
- * acceso.</p>
- *
- * <p>El campo {@code type} es fijo en {@code Bearer} e indica el esquema de
- * autorización que debe usarse al enviar el token en las peticiones
- * posteriores.</p>
+ * <p>El JWT viaja únicamente en la cookie HttpOnly; este cuerpo contiene los
+ * datos de perfil que el frontend necesita para construir la sesión.</p>
  */
 @Getter
 @Setter
 @AllArgsConstructor
 public class JwtResponse {
-    private String token;
     private Long id;
     private String username;
     private String email;

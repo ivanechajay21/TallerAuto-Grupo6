@@ -28,8 +28,9 @@ class CitaServiceTest {
     @Mock private ClienteRepository clientes;
     @Mock private VehiculoRepository vehiculos;
     @Mock private AuditoriaService auditoria;
+    @Mock private NotificacionService notificaciones;
 
-    private CitaService service() { return new CitaService(citas, clientes, vehiculos, auditoria); }
+    private CitaService service() { return new CitaService(citas, clientes, vehiculos, auditoria, notificaciones); }
 
     @Test
     void creaCitaPendienteYExponeResumenDeClienteYVehiculo() {
@@ -77,6 +78,7 @@ class CitaServiceTest {
 
         assertEquals("CONFIRMED", cita.getStatus()); assertEquals("CONFIRMED", result.get("status"));
         verify(auditoria).registrar(eq("STATUS"), eq("CITA"), eq(18L), contains("PENDING a CONFIRMED"));
+        verify(notificaciones).notificarRol(anyList(), eq("CITAS"), eq("Cita confirmada"), anyString(), eq("/citas"));
     }
 
     @Test
@@ -87,6 +89,74 @@ class CitaServiceTest {
 
         when(citas.findById(77L)).thenReturn(Optional.empty());
         assertEquals("Cita no encontrada", assertThrows(RuntimeException.class, () -> service().obtenerPorId(77L)).getMessage());
+    }
+
+    @Test
+    void actualizaUnaCitaPendiente() {
+        Vehiculo vehicle = Vehiculo.builder().id(7L).plate("ABC-123").brand("Honda").model("Civic").build();
+        Cita cita = cita();
+        cita.setId(18L);
+        cita.setStatus("PENDING");
+        cita.setVehicle(vehicle);
+        when(citas.findById(18L)).thenReturn(Optional.of(cita));
+        when(citas.save(cita)).thenReturn(cita);
+
+        Cita cambios = Cita.builder()
+                .appointmentDate(LocalDate.of(2026, 11, 20))
+                .appointmentTime(LocalTime.of(15, 45))
+                .requestedService("Alineación y balanceo")
+                .observations("Revisar también la suspensión")
+                .build();
+
+        Map<String, Object> result = service().actualizarCita(18L, cambios);
+
+        assertEquals(LocalDate.of(2026, 11, 20), cita.getAppointmentDate());
+        assertEquals(LocalTime.of(15, 45), cita.getAppointmentTime());
+        assertEquals("Alineación y balanceo", cita.getRequestedService());
+        assertEquals("2026-11-20", result.get("appointmentDate"));
+        verify(auditoria).registrar(eq("UPDATE"), eq("CITA"), eq(18L), contains("ABC-123"));
+    }
+
+    @Test
+    void noActualizaUnaCitaQueYaNoEstaPendiente() {
+        Cita cita = cita();
+        cita.setId(18L);
+        cita.setStatus("CONFIRMED");
+        when(citas.findById(18L)).thenReturn(Optional.of(cita));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> service().actualizarCita(18L, cita()));
+
+        assertEquals("Solo se pueden editar citas pendientes", error.getMessage());
+        verify(citas, never()).save(any());
+    }
+
+    @Test
+    void eliminaUnaCitaPendiente() {
+        Cita cita = cita();
+        cita.setId(21L);
+        cita.setStatus("PENDING");
+        when(citas.findById(21L)).thenReturn(Optional.of(cita));
+
+        service().eliminarCita(21L);
+
+        verify(citas).delete(cita);
+        verify(citas).flush();
+        verify(auditoria).registrar(eq("DELETE"), eq("CITA"), eq(21L), contains("eliminada"));
+    }
+
+    @Test
+    void noEliminaUnaCitaCompletada() {
+        Cita cita = cita();
+        cita.setId(22L);
+        cita.setStatus("COMPLETED");
+        when(citas.findById(22L)).thenReturn(Optional.of(cita));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> service().eliminarCita(22L));
+
+        assertEquals("Solo se pueden eliminar citas pendientes", error.getMessage());
+        verify(citas, never()).delete(any(Cita.class));
     }
 
     private Cita cita() {

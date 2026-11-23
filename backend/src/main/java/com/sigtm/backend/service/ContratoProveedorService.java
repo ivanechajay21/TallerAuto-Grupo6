@@ -49,6 +49,14 @@ public class ContratoProveedorService {
     }
 
     @Transactional(readOnly = true)
+    public ComprasResponses.ContratoProveedorResponse obtenerDto(Long supplierId, Long id) {
+        ContratoProveedor contract = contracts.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
+        validarProveedor(contract, supplierId);
+        return ComprasResponses.ContratoProveedorResponse.from(contract);
+    }
+
+    @Transactional(readOnly = true)
     public Optional<ContratoProveedor> vigente(Long supplierId, LocalDate date) {
         return contracts.findBySupplierIdOrderByStartsAtDesc(supplierId).stream()
                 .filter(contract -> Boolean.TRUE.equals(contract.getActive()))
@@ -86,6 +94,25 @@ public class ContratoProveedorService {
     @Transactional
     public ComprasResponses.ContratoProveedorResponse desactivarDto(Long id) {
         return ComprasResponses.ContratoProveedorResponse.from(desactivarEntity(id));
+    }
+
+    @Transactional
+    public ComprasResponses.ContratoProveedorResponse desactivarDto(Long supplierId, Long id) {
+        ContratoProveedor contract = contracts.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Contrato no encontrado"));
+        validarProveedor(contract, supplierId);
+        contract.setActive(false);
+        ContratoProveedor saved = contracts.save(contract);
+        audit.registrar("UPDATE", "CONTRATO_PROVEEDOR", saved.getId(),
+                "Contrato desactivado " + saved.getCode());
+        return ComprasResponses.ContratoProveedorResponse.from(saved);
+    }
+
+    private void validarProveedor(ContratoProveedor contract, Long supplierId) {
+        if (contract.getSupplier() == null || supplierId == null
+                || !supplierId.equals(contract.getSupplier().getId())) {
+            throw new ResourceNotFoundException("El contrato no pertenece al proveedor indicado");
+        }
     }
 
     private ContratoProveedor actualizarEntity(Long supplierId, Long id, ContratoProveedor data) {

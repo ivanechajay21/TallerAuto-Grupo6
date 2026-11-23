@@ -1,5 +1,7 @@
 package com.sigtm.backend.service;
 
+import com.sigtm.backend.exception.DuplicateResourceException;
+import com.sigtm.backend.exception.ResourceNotFoundException;
 import com.sigtm.backend.model.ItemCatalogo;
 import com.sigtm.backend.repository.ItemCatalogoRepository;
 import lombok.RequiredArgsConstructor;
@@ -58,9 +60,11 @@ public class ItemCatalogoService {
      */
     @Transactional
     public ItemCatalogo crear(String tipo, ItemCatalogo item) {
+        if (item == null) throw new IllegalArgumentException("Los datos del catálogo son obligatorios");
         String t = normalizarTipo(tipo);
         String nombre = item.getNombre() == null ? "" : item.getNombre().trim();
         if (nombre.isEmpty()) throw new IllegalArgumentException("El nombre es obligatorio");
+        if (nombre.length() > 100) throw new IllegalArgumentException("El nombre no puede superar 100 caracteres");
 
         asignarCodigo(item, t);
         verificarUnico(t, item);
@@ -90,11 +94,16 @@ public class ItemCatalogoService {
      */
     @Transactional
     public ItemCatalogo actualizar(Long id, String tipo, ItemCatalogo actualizar) {
+        if (actualizar == null) throw new IllegalArgumentException("Los datos del catálogo son obligatorios");
         ItemCatalogo item = itemCatalogoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Elemento de catálogo no encontrado"));
-        String t = item.getTipo();
+                .orElseThrow(() -> new ResourceNotFoundException("Elemento de catálogo no encontrado"));
+        String t = normalizarTipo(tipo);
+        if (!t.equals(item.getTipo())) {
+            throw new IllegalArgumentException("El elemento no pertenece al catálogo indicado");
+        }
         String nombre = actualizar.getNombre() == null ? "" : actualizar.getNombre().trim();
         if (nombre.isEmpty()) throw new IllegalArgumentException("El nombre es obligatorio");
+        if (nombre.length() > 100) throw new IllegalArgumentException("El nombre no puede superar 100 caracteres");
 
         String nombreAnterior = item.getNombre();
         ItemCatalogo duplicado = itemCatalogoRepository.findByTipoAndNombreIgnoreCase(t, nombre).orElse(null);
@@ -102,7 +111,15 @@ public class ItemCatalogoService {
             throw new IllegalArgumentException("Ya existe un elemento llamado \"" + nombre + "\"");
         }
         item.setNombre(nombre);
-        if (StringUtils.hasText(actualizar.getCode())) item.setCode(actualizar.getCode().trim());
+        if (StringUtils.hasText(actualizar.getCode())) {
+            String codigo = actualizar.getCode().trim();
+            if (codigo.length() > 30) throw new IllegalArgumentException("El código no puede superar 30 caracteres");
+            ItemCatalogo codigoDuplicado = itemCatalogoRepository.findByTipoAndCode(t, codigo).orElse(null);
+            if (codigoDuplicado != null && !codigoDuplicado.getId().equals(id)) {
+                throw new DuplicateResourceException("Ya existe el código \"" + codigo + "\" en este catálogo");
+            }
+            item.setCode(codigo);
+        }
         if (actualizar.getOrden() != null) item.setOrden(actualizar.getOrden());
         if (actualizar.getActivo() != null) item.setActivo(actualizar.getActivo());
 
@@ -122,7 +139,7 @@ public class ItemCatalogoService {
     @Transactional
     public void delete(Long id) {
         ItemCatalogo item = itemCatalogoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Elemento de catálogo no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Elemento de catálogo no encontrado"));
         auditoriaService.registrar("DELETE", "CATALOGO_" + item.getTipo(), id, "Catálogo " + item.getTipo() + ": " + item.getNombre());
         itemCatalogoRepository.delete(item);
     }
@@ -130,8 +147,9 @@ public class ItemCatalogoService {
     private void asignarCodigo(ItemCatalogo item, String t) {
         if (StringUtils.hasText(item.getCode())) {
             String codigo = item.getCode().trim();
+            if (codigo.length() > 30) throw new IllegalArgumentException("El código no puede superar 30 caracteres");
             if (itemCatalogoRepository.findByTipoAndCode(t, codigo).isPresent()) {
-                throw new IllegalArgumentException("Ya existe el código \"" + codigo + "\" en este catálogo");
+                throw new DuplicateResourceException("Ya existe el código \"" + codigo + "\" en este catálogo");
             }
             item.setCode(codigo);
         }

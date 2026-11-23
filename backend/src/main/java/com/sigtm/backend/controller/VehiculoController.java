@@ -29,6 +29,30 @@ public class VehiculoController {
     // Acceso por permiso del módulo VEHICULOS. El mecánico accede al detalle y al
     // historial desde "Mi trabajo" (MI_TRABAJO:VER), sin tener el módulo Vehículos.
     /**
+     * Devuelve los vehículos paginados con búsqueda, filtro de estado y resumen.
+     *
+     * <p>Exige {@code VEHICULOS:VER}. El resumen se calcula sobre todo el padrón,
+     * no solo sobre la página solicitada.</p>
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param sort   orden solicitado
+     * @return la página de vehículos y el resumen (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('VEHICULOS:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "TODOS") String status,
+            @RequestParam(required = false, defaultValue = "reciente") String sort) {
+        return ResponseEntity.ok(vehiculoService.buscarPaginado(page, size, search, status, sort));
+    }
+
+    /**
      * Lista todos los vehículos del padrón.
      *
      * <p>Exige {@code VEHICULOS:VER}.</p>

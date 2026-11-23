@@ -4,19 +4,30 @@ import com.sigtm.backend.dto.CrearUsuarioRequest;
 import com.sigtm.backend.dto.ActualizarUsuarioRequest;
 import com.sigtm.backend.exception.DuplicateResourceException;
 import com.sigtm.backend.exception.ResourceNotFoundException;
+import com.sigtm.backend.security.PasswordPolicy;
 import com.sigtm.backend.model.Rol;
 import com.sigtm.backend.model.Usuario;
 import com.sigtm.backend.repository.RolRepository;
 import com.sigtm.backend.repository.UsuarioRepository;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -33,6 +44,7 @@ public class UsuarioService {
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
+    private final PresenceService presenceService;
 
     /**
      * Registra el inicio de sesión de un usuario y actualiza su último acceso.
@@ -68,6 +80,84 @@ public class UsuarioService {
     public Map<String, Object> obtenerPerfil(Long userId) {
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        return aPerfil(usuario);
+    }
+
+    /**
+     * Devuelve la entidad de usuario para comprobaciones internas de seguridad.
+     */
+    @Transactional(readOnly = true)
+    public Usuario obtenerEntidad(Long userId) {
+        return usuarioRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+    }
+
+    /**
+     * Busca usuarios con búsqueda, filtros de estado/rol, paginación y resumen.
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página; se limita a 100
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param role   nombre de rol exacto o {@code TODOS}
+     * @return página de usuarios y resumen del directorio
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(int page, int size, String search, String status, String role) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+        String estado = status == null ? "TODOS" : status.trim().toUpperCase(Locale.ROOT);
+        String rolFiltro = role == null ? "TODOS" : role.trim();
+
+        Specification<Usuario> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if ("ACTIVOS".equals(estado)) {
+                predicates.add(cb.isTrue(root.get("active")));
+            } else if ("INACTIVOS".equals(estado)) {
+                predicates.add(cb.isFalse(root.get("active")));
+            }
+            if (!"TODOS".equalsIgnoreCase(rolFiltro) && !rolFiltro.isBlank()) {
+                Join<Usuario, Rol> rol = root.join("role", JoinType.LEFT);
+                predicates.add(cb.equal(rol.get("name"), rolFiltro));
+            }
+            if (texto != null && !texto.isBlank()) {
+                Join<Usuario, Rol> rol = root.join("role", JoinType.LEFT);
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("name")), like),
+                        cb.like(cb.lower(root.get("lastName")), like),
+                        cb.like(cb.lower(root.get("username")), like),
+                        cb.like(cb.lower(root.get("email")), like),
+                        cb.like(cb.lower(root.get("phone")), like),
+                        cb.like(cb.lower(rol.get("name")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        Page<Usuario> resultado = usuarioRepository.findAll(
+                spec, PageRequest.of(pageIndex, pageSize, Sort.by(Sort.Direction.ASC, "name")));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent().stream().map(this::aPerfil).toList());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumenUsuarios());
+        return respuesta;
+    }
+
+    private Map<String, Object> resumenUsuarios() {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", usuarioRepository.count());
+        resumen.put("active", usuarioRepository.countByActiveTrue());
+        resumen.put("inactive", usuarioRepository.countByActiveFalse());
+        return resumen;
+    }
+
+    private Map<String, Object> aPerfil(Usuario usuario) {
         Map<String, Object> datos = new HashMap<>();
         datos.put("id", usuario.getId());
         datos.put("name", usuario.getName());
@@ -78,6 +168,7 @@ public class UsuarioService {
         datos.put("avatarUrl", usuario.getAvatarUrl());
         datos.put("active", usuario.getActive());
         datos.put("lastLogin", usuario.getLastLogin() != null ? usuario.getLastLogin().toString() : null);
+        datos.put("online", presenceService.estaEnLinea(usuario.getId()));
         datos.put("roleName", usuario.getRole() != null ? usuario.getRole().getName() : null);
         datos.put("createdAt", usuario.getCreatedAt() != null ? usuario.getCreatedAt().toString() : null);
         return datos;
@@ -86,18 +177,35 @@ public class UsuarioService {
     /**
      * Lista todos los usuarios del sistema con su perfil resumido.
      *
-     * <p>El indicador {@code online} se devuelve siempre en {@code false}, ya que el
-     * estado en línea aún no se deriva de sesiones activas.</p>
+     * <p>El indicador {@code online} se deriva del último latido de actividad
+     * registrado por {@link PresenceService}.</p>
      *
      * @return los perfiles de usuario en formato {@code Map}
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerTodos() {
-        return usuarioRepository.findAll().stream().map(usuario -> {
-            Map<String, Object> datos = obtenerPerfil(usuario.getId());
-            datos.put("online", false); // Placeholder: el estado en línea se puede derivar de sesiones activas
-            return datos;
-        }).toList();
+        return usuarioRepository.findAll().stream()
+                .map(usuario -> obtenerPerfil(usuario.getId()))
+                .toList();
+    }
+
+    /**
+     * Registra la actividad del usuario autenticado para el indicador en línea.
+     *
+     * @param usuarioId identificador del usuario
+     */
+    public void registrarActividad(Long usuarioId) {
+        presenceService.marcarActivo(usuarioId);
+    }
+
+    /**
+     * Devuelve los usuarios con actividad reciente.
+     *
+     * @return identificadores de usuarios en línea
+     */
+    @Transactional(readOnly = true)
+    public java.util.Set<Long> usuariosEnLinea() {
+        return presenceService.usuariosEnLinea();
     }
 
     /**
@@ -172,12 +280,7 @@ public class UsuarioService {
         if (solicitud.roleName() == null || solicitud.roleName().isBlank()) {
             throw new IllegalArgumentException("El rol es obligatorio");
         }
-        if (solicitud.password() == null || solicitud.password().isBlank()) {
-            throw new IllegalArgumentException("La contraseña es obligatoria");
-        }
-        if (solicitud.password().length() < 12) {
-            throw new IllegalArgumentException("La contraseña debe tener al menos 12 caracteres");
-        }
+        PasswordPolicy.validate(solicitud.password(), solicitud.username(), solicitud.email());
 
         String username = solicitud.username().trim();
         String email = solicitud.email().trim();
@@ -262,9 +365,7 @@ public class UsuarioService {
             usuario.setRole(rol);
         }
         if (solicitud.newPassword() != null && !solicitud.newPassword().isBlank()) {
-            if (solicitud.newPassword().length() < 12) {
-                throw new IllegalArgumentException("La contraseña debe tener al menos 12 caracteres");
-            }
+            PasswordPolicy.validate(solicitud.newPassword(), usuario.getUsername(), usuario.getEmail());
             usuario.setPassword(passwordEncoder.encode(solicitud.newPassword()));
             usuario.setTokenVersion(usuario.getTokenVersion() + 1);
         }

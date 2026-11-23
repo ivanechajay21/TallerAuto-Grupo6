@@ -18,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
 /**
  * Configuración de seguridad web de la aplicación.
@@ -57,7 +58,7 @@ public class WebSecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 
     @Value("${app.cors.allowed-origins}")
@@ -71,17 +72,46 @@ public class WebSecurityConfig {
                 .filter(origin -> !origin.isBlank())
                 .toList());
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("*"));
-        configuration.setExposedHeaders(java.util.List.of("x-auth-token"));
+        configuration.setAllowedHeaders(java.util.List.of(
+                "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With",
+                "X-XSRF-TOKEN"));
+        configuration.setExposedHeaders(java.util.List.of("x-auth-token", "Content-Disposition"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public CsrfCookieFilter csrfCookieFilter(
+            @Value("${app.cookie.secure:false}") boolean secure,
+            @Value("${app.cookie.same-site:Strict}") String sameSite) {
+        return new CsrfCookieFilter(secure, sameSite);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           CsrfCookieFilter csrfCookieFilter) throws Exception {
         http.cors(org.springframework.security.config.Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                .headers(headers -> headers
+                        .frameOptions(frame -> frame.deny())
+                        .contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Referrer-Policy", "strict-origin-when-cross-origin"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Permissions-Policy", "camera=(), microphone=(), geolocation=()"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "X-Permitted-Cross-Domain-Policies", "none"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Cache-Control", "no-store"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Pragma", "no-cache")))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> 
@@ -96,6 +126,7 @@ public class WebSecurityConfig {
                 );
 
         http.authenticationProvider(authenticationProvider());
+        http.addFilterBefore(csrfCookieFilter, UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

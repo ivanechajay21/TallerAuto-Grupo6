@@ -11,7 +11,7 @@ Aplicación web para administrar la operación de un taller mecánico: clientes 
 | MySQL 8 | Base de datos | Persistencia de usuarios, operación del taller, catálogos y auditoría. |
 | `docs/` y `API.md` | Markdown | Arquitectura, métricas del proyecto y referencia detallada de la API. |
 
-La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El frontend envía el JWT en el encabezado `Authorization: Bearer <token>` y el backend autoriza cada operación mediante permisos.
+La comunicación habitual es: **React → `/api` → Spring Boot → MySQL**. El JWT viaja en una cookie `HttpOnly` y el backend autoriza cada operación mediante permisos; las peticiones que modifican estado usan además un token CSRF.
 
 Composición del código con la métrica de **GitHub Linguist (por bytes): Java 50.2 %**, TypeScript/TSX 48.1 % y configuración/CSS 1.7 %. El detalle por líneas, archivos y paquetes está en [`docs/ESTADISTICAS.md`](docs/ESTADISTICAS.md).
 
@@ -57,10 +57,11 @@ Para desarrollo sin contenedores se necesita:
    docker compose up --build
    ```
 
-   Para generar el Excel del Centro de Reportes en el backend con Apache POI,
-   configura `USE_APACHE_POI=true` antes de construir. Con `false` (valor por
-   defecto), se conserva la exportación local con `xlsx`. Como Vite incorpora
-   esta variable al compilar, reconstruye el frontend al cambiarla.
+   El Excel del Centro de Reportes se genera en el backend con Apache POI y
+   diseño corporativo (`USE_APACHE_POI=true`, valor por defecto). Si el endpoint
+   no está disponible, el frontend usa automáticamente la exportación local con
+   `xlsx`. Como Vite incorpora esta variable al compilar, reconstruye el frontend
+   si cambias su valor.
 
 3. Abre los servicios:
 
@@ -158,8 +159,10 @@ export MAIL_USERNAME='tu.correo@gmail.com'
 export MAIL_PASSWORD='tu_app_password'
 export FRONTEND_URL='http://localhost:5173'
 export SEED_DATA='true'
-export USE_APACHE_POI='true' # opcional: exportación XLSX con Apache POI
+export USE_APACHE_POI='true' # valor por defecto: Excel corporativo con Apache POI
 ```
+
+La recuperación de contraseña envía el enlace al correo real registrado en la cuenta del usuario. Para Gmail usa una contraseña de aplicación (`MAIL_PASSWORD`) y verifica que `MAIL_USERNAME` sea la misma cuenta remitente. Puedes validar la conexión desde **Configuración → Correo saliente → Probar envío**. Cuando el usuario restablece su contraseña, el sistema genera una notificación interna para los administradores en el centro de notificaciones.
 
 ### 3. Frontend
 
@@ -217,6 +220,10 @@ MAIL_USERNAME=<cuenta-smtp>
 MAIL_PASSWORD=<secreto-smtp>
 FRONTEND_URL=https://app.ejemplo.com
 CORS_ALLOWED_ORIGINS=https://app.ejemplo.com
+MFA_REQUIRED_FOR_ADMIN=true
+MFA_ISSUER=SIGTM
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=Strict
 SEED_DATA=false
 USE_APACHE_POI=true
 ```

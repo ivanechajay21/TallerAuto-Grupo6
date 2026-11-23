@@ -4,7 +4,9 @@ import com.sigtm.backend.exception.TooManyRequestsException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LoginAttemptServiceTest {
 
@@ -17,7 +19,20 @@ class LoginAttemptServiceTest {
             service.recordLoginFailure("usuario");
         }
 
-        assertThrows(TooManyRequestsException.class, () -> service.checkLoginAllowed("usuario"));
+        TooManyRequestsException error = assertThrows(TooManyRequestsException.class,
+                () -> service.checkLoginAllowed("usuario"));
+        assertTrue(error.getMessage().contains("minuto"));
+    }
+
+    @Test
+    void informaCuantosIntentosQuedanAntesDelBloqueo() {
+        LoginAttemptService service = new LoginAttemptService();
+
+        assertEquals(4, service.recordLoginFailure("usuario"));
+        assertEquals(3, service.recordLoginFailure("usuario"));
+        assertEquals(2, service.recordLoginFailure("usuario"));
+        assertEquals(1, service.recordLoginFailure("usuario"));
+        assertEquals(0, service.recordLoginFailure("usuario"));
     }
 
     @Test

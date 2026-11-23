@@ -1,6 +1,8 @@
 # Estadísticas del proyecto SIGTM
 
-> **Fecha:** 6 de noviembre de 2026
+> **Actualización: 12 de noviembre de 2026.** Las tablas de este documento son la medición histórica del 6 de noviembre. La composición actual, medida con `scripts/metricas-java.ps1`, es: Java **23,346 / 46,058 líneas no vacías (50.69 %)** y **1,167,971 / 2,224,106 bytes (52.51 %)**. Por cantidad de archivos, Java representa **293 / 381 (76.90 %)**. Java **supera el 50 % tanto por bytes (métrica de GitHub Linguist) como por líneas no vacías**.
+>
+> **Fecha histórica:** 6 de noviembre de 2026
 > **Métrica:** líneas de código (LOC) = líneas **no vacías**.
 > **Exclusiones:** `node_modules`, `target`, `dist`, `.git`, `build`, `.mvn`, `uploads`, `coverage`, `package-lock.json`, binarios y archivos minificados.
 
@@ -28,7 +30,7 @@ Esta es la métrica que usa GitHub para mostrar la composición de lenguajes del
 | CSS | 2 | 8 513 B | 0.5 % |
 | **Total** | **321** | **1 572 606 B** | **100 %** |
 
-> **Java supera el 50 % con la métrica de GitHub Linguist (50.2 %).** Por líneas no vacías está en 47.1 %; por archivos, Java representa el **74.1 %**. Las fases 1 y 2 agregaron backend; la Fase 3 agregó las pantallas de proveedores, compras y abastecimiento.
+> **En la medición histórica del 6/11/2026**, Java superaba el 50 % con la métrica de GitHub Linguist (50.2 %). Por líneas no vacías estaba en 47.1 %; por archivos, Java representaba el **74.1 %**. Las fases 1 y 2 agregaron backend; la Fase 3 agregó las pantallas de proveedores, compras y abastecimiento.
 
 ### Vistas rápidas
 
@@ -72,7 +74,7 @@ Esta es la métrica que usa GitHub para mostrar la composición de lenguajes del
 
 ## Conclusiones
 
-- Proyecto **full-stack**: el **backend en Java/Spring Boot** concentra **50.4 % de los bytes de código** (métrica de GitHub Linguist), cerca de la mitad de las líneas no vacías y tres cuartas partes de los archivos de código.
+- Proyecto **full-stack**: en la medición histórica, el **backend en Java/Spring Boot** concentraba **50.4 % de los bytes de código** (métrica de GitHub Linguist), cerca de la mitad de las líneas no vacías y tres cuartas partes de los archivos de código.
 - El **frontend en React/TypeScript** pesa algo más de la mitad de las líneas no vacías, algo habitual en aplicaciones de gestión con paneles, tablas y formularios.
 - Dentro del backend, la **lógica de negocio (`service`) es el bloque más grande**, seguido de los controladores (API REST) y el modelo de datos.
 - Dentro del frontend, las **páginas** (`pages`) son, con diferencia, el bloque más grande.

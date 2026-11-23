@@ -11,7 +11,14 @@ import com.sigtm.backend.repository.ClienteRepository;
 import com.sigtm.backend.repository.RecepcionVehiculoRepository;
 import com.sigtm.backend.repository.VehiculoRepository;
 import com.sigtm.backend.repository.OrdenTrabajoRepository;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +29,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -50,6 +58,86 @@ public class VehiculoService {
     @Transactional(readOnly = true)
     public List<Vehiculo> obtenerTodos() {
         return vehiculoRepository.findAll();
+    }
+
+    /**
+     * Busca vehículos con búsqueda, filtro de estado, paginación y resumen.
+     *
+     * <p>La búsqueda cubre placa, código, marca, modelo, color, VIN y datos del
+     * propietario. El resumen siempre refleja el total del padrón, no solo la
+     * página o el filtro actual, para alimentar las tarjetas del tablero.</p>
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página; se limita a 100
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param sort   orden solicitado
+     * @return página de vehículos y resumen del padrón
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(int page, int size, String search, String status, String sort) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+        String estado = status == null ? "TODOS" : status.trim().toUpperCase(Locale.ROOT);
+
+        Specification<Vehiculo> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if ("ACTIVOS".equals(estado)) {
+                predicates.add(cb.isTrue(root.get("active")));
+            } else if ("INACTIVOS".equals(estado)) {
+                predicates.add(cb.isFalse(root.get("active")));
+            }
+
+            if (texto != null && !texto.isBlank()) {
+                Join<Vehiculo, Cliente> cliente = root.join("customer", JoinType.LEFT);
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("plate")), like),
+                        cb.like(cb.lower(root.get("brand")), like),
+                        cb.like(cb.lower(root.get("model")), like),
+                        cb.like(cb.lower(root.get("code")), like),
+                        cb.like(cb.lower(root.get("color")), like),
+                        cb.like(cb.lower(root.get("vin")), like),
+                        cb.like(cb.lower(cliente.get("firstName")), like),
+                        cb.like(cb.lower(cliente.get("lastName")), like),
+                        cb.like(cb.lower(cb.concat(cb.concat(cliente.get("firstName"), " "), cliente.get("lastName"))), like),
+                        cb.like(cb.lower(cb.concat(cb.concat(cliente.get("lastName"), " "), cliente.get("firstName"))), like),
+                        cb.like(cb.lower(cliente.get("documentNumber")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        String ordenSolicitado = sort == null ? "reciente" : sort.trim().toLowerCase(Locale.ROOT);
+        Sort orden = switch (ordenSolicitado) {
+            case "antigua" -> Sort.by(Sort.Direction.ASC, "registrationDate");
+            case "placa" -> Sort.by(Sort.Direction.ASC, "plate");
+            case "kilometraje" -> Sort.by(Sort.Direction.DESC, "currentMileage");
+            default -> Sort.by(Sort.Direction.DESC, "registrationDate")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+
+        Page<Vehiculo> resultado = vehiculoRepository.findAll(
+                spec, PageRequest.of(pageIndex, pageSize, orden));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumenVehiculos());
+        return respuesta;
+    }
+
+    private Map<String, Object> resumenVehiculos() {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", vehiculoRepository.count());
+        resumen.put("active", vehiculoRepository.countByActiveTrue());
+        resumen.put("inactive", vehiculoRepository.countByActiveFalse());
+        resumen.put("withMileage", vehiculoRepository.countByCurrentMileageGreaterThan(0));
+        return resumen;
     }
 
     /**

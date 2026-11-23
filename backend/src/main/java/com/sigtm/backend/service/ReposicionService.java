@@ -26,7 +26,8 @@ public class ReposicionService {
  public List<Map<String,Object>> sugerencias(){
   List<Map<String,Object>> result = new ArrayList<>();
   for (Producto product : products.findByActiveTrue()) {
-   PoliticaReposicion policy = policies.findByProductId(product.getId()).orElse(null);
+   PoliticaReposicion policy = policies.findByProductId(product.getId())
+           .filter(value -> Boolean.TRUE.equals(value.getActive())).orElse(null);
    int current = product.getCurrentStock() == null ? 0 : product.getCurrentStock();
    int minStock = product.getMinStock() == null ? 0 : product.getMinStock();
    int threshold = policy != null && policy.getReorderPoint() != null ? policy.getReorderPoint() : minStock;

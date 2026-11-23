@@ -90,6 +90,20 @@ class ContratoProveedorServiceTest {
         assertEquals(true, existing.getActive());
     }
 
+    @Test
+    void noPermiteConsultarNiDesactivarUnContratoDeOtroProveedor() {
+        Proveedor supplier = Proveedor.builder().id(5L).businessName("Proveedor").build();
+        ContratoProveedor existing = ContratoProveedor.builder().id(8L).code("CP-8").supplier(supplier)
+                .active(true).build();
+        when(contracts.findById(8L)).thenReturn(Optional.of(existing));
+
+        ContratoProveedorService service = new ContratoProveedorService(contracts, suppliers, audit);
+        assertThrows(ResourceNotFoundException.class, () -> service.obtenerDto(6L, 8L));
+        assertThrows(ResourceNotFoundException.class, () -> service.desactivarDto(6L, 8L));
+        assertTrue(existing.getActive());
+        verify(contracts, never()).save(any());
+    }
+
     private ContratoProveedor contract(LocalDate start, LocalDate end) {
         return ContratoProveedor.builder().startsAt(start).endsAt(end).currency("PEN")
                 .discountPercentage(BigDecimal.ZERO).paymentDays(30).minimumPurchase(BigDecimal.ZERO).terms("Pago a crédito").build();

@@ -2,8 +2,10 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.ItemOrdenTrabajo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -38,4 +40,29 @@ public interface ItemOrdenTrabajoRepository extends JpaRepository<ItemOrdenTraba
      * @return ítems del mecánico con el estado indicado.
      */
     List<ItemOrdenTrabajo> findByMechanicIdAndStatus(Long mechanicId, String status);
+
+    /**
+     * Comprueba si una orden tiene al menos un trabajo asignado a un mecánico.
+     *
+     * <p>Se usa para autorizar la consulta de una orden cuando el usuario solo
+     * dispone del permiso {@code MI_TRABAJO:VER} y no del permiso global
+     * {@code ORDENES:VER}.</p>
+     *
+     * @param workOrderId identificador de la orden
+     * @param mechanicId  identificador del mecánico
+     * @return {@code true} si existe una asignación del mecánico en la orden
+     */
+    boolean existsByWorkOrderIdAndMechanicId(Long workOrderId, Long mechanicId);
+
+    /**
+     * Suma el valor estimado de los ítems de órdenes que siguen activas.
+     *
+     * @return valor total de las órdenes no finalizadas, o cero si no hay ítems.
+     */
+    @Query("""
+            select coalesce(sum(i.price * i.quantity), 0)
+            from ItemOrdenTrabajo i
+            where i.workOrder.status <> 'FINALIZADO'
+            """)
+    BigDecimal sumarValorActivo();
 }

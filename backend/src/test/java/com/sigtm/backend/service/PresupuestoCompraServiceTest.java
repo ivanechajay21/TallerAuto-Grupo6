@@ -37,6 +37,7 @@ class PresupuestoCompraServiceTest {
         assertEquals("ALERTA", state.status());
         assertEquals(new BigDecimal("150"), state.availableAmount());
         assertEquals(new BigDecimal("85.00"), state.percentageUsed());
+        assertEquals(80, state.alertPercentage());
     }
 
     @Test

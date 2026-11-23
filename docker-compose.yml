@@ -49,6 +49,13 @@ services:
       - DB_USERNAME=${MYSQL_USER}
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_EXPIRATION_MS=${JWT_EXPIRATION_MS:-7200000}
+      - JWT_ISSUER=${JWT_ISSUER:-sigtm-backend}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-sigtm-web}
+      - MFA_REQUIRED_FOR_ADMIN=${MFA_REQUIRED_FOR_ADMIN:-true}
+      - MFA_ISSUER=${MFA_ISSUER:-SIGTM}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - COOKIE_SAME_SITE=${COOKIE_SAME_SITE:-Strict}
       - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
       - MAIL_PORT=${MAIL_PORT:-587}
       - MAIL_USERNAME=${MAIL_USERNAME:-}
@@ -57,7 +64,7 @@ services:
       - UPLOAD_DIR=/app/uploads
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       - SEED_DATA=${SEED_DATA:-true}
-      - USE_APACHE_POI=${USE_APACHE_POI:-false}
+      - USE_APACHE_POI=${USE_APACHE_POI:-true}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -78,7 +85,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_USE_APACHE_POI: ${USE_APACHE_POI:-false}
+        VITE_USE_APACHE_POI: ${USE_APACHE_POI:-true}
     container_name: sigtm_frontend
     ports:
       - "3000:80"

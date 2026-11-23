@@ -1,12 +1,16 @@
 package com.sigtm.backend.controller;
 
 import com.sigtm.backend.dto.ActualizarOrdenTrabajoRequest;
+import com.sigtm.backend.exception.ResourceNotFoundException;
 import com.sigtm.backend.model.OrdenTrabajo;
 import com.sigtm.backend.model.ItemOrdenTrabajo;
+import com.sigtm.backend.security.services.UserDetailsImpl;
 import com.sigtm.backend.service.OrdenTrabajoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +51,47 @@ public class OrdenTrabajoController {
     }
 
     /**
+     * Consulta paginada del tablero con filtros y ordenamiento en servidor.
+     *
+     * <p>Exige {@code ORDENES:VER}. El parámetro {@code tab} admite {@code activas}
+     * (por defecto) e {@code historial}. La respuesta incluye la página solicitada
+     * y un resumen global para los indicadores del tablero.</p>
+     *
+     * @param page           página base cero
+     * @param size           tamaño de página
+     * @param tab            activas o historial
+     * @param search         texto libre
+     * @param status         estado exacto
+     * @param priority       prioridad exacta
+     * @param mechanicId     mecánico asignado
+     * @param onlyUrgent     solo urgentes
+     * @param onlyUnassigned solo sin mecánico
+     * @param onlyNoItems    solo sin ítems
+     * @param onlyStale      solo con siete días o más
+     * @param sort           prioridad, antigua, reciente o total
+     * @return página de órdenes y resumen global (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('ORDENES:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "activas") String tab,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(defaultValue = "") String status,
+            @RequestParam(defaultValue = "") String priority,
+            @RequestParam(required = false) Long mechanicId,
+            @RequestParam(defaultValue = "false") boolean onlyUrgent,
+            @RequestParam(defaultValue = "false") boolean onlyUnassigned,
+            @RequestParam(defaultValue = "false") boolean onlyNoItems,
+            @RequestParam(defaultValue = "false") boolean onlyStale,
+            @RequestParam(defaultValue = "prioridad") String sort) {
+        return ResponseEntity.ok(ordenTrabajoService.buscarPaginado(
+                page, size, tab, search, status, priority, mechanicId,
+                onlyUrgent, onlyUnassigned, onlyNoItems, onlyStale, sort));
+    }
+
+    /**
      * Devuelve el detalle de una orden de trabajo.
      *
      * <p>Exige {@code ORDENES:VER} o {@code MI_TRABAJO:VER}. Un identificador
@@ -58,7 +103,15 @@ public class OrdenTrabajoController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ORDENES:VER', 'MI_TRABAJO:VER')")
-    public ResponseEntity<Map<String, Object>> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Map<String, Object>> obtenerPorId(
+            @PathVariable Long id,
+            Authentication authentication) {
+        UserDetailsImpl usuario = usuarioActual(authentication);
+        if (!puedeVerTodasLasOrdenes(authentication)
+                && !ordenTrabajoService.puedeVerOrden(id, usuario.getId())) {
+            // 404 para no revelar la existencia de órdenes de otros mecánicos.
+            throw new ResourceNotFoundException("Orden de trabajo no encontrada");
+        }
         return ResponseEntity.ok(ordenTrabajoService.obtenerPorId(id));
     }
 
@@ -249,7 +302,28 @@ public class OrdenTrabajoController {
      */
     @GetMapping("/mecanico/{mechanicId}/detalles")
     @PreAuthorize("hasAuthority('MI_TRABAJO:VER')")
-    public ResponseEntity<List<Map<String, Object>>> obtenerMisTrabajos(@PathVariable Long mechanicId) {
+    public ResponseEntity<List<Map<String, Object>>> obtenerMisTrabajos(
+            @PathVariable Long mechanicId,
+            Authentication authentication) {
+        UserDetailsImpl usuario = usuarioActual(authentication);
+        if (!puedeVerTodasLasOrdenes(authentication)
+                && !usuario.getId().equals(mechanicId)) {
+            throw new AccessDeniedException("No puedes consultar los trabajos de otro mecánico");
+        }
         return ResponseEntity.ok(ordenTrabajoService.obtenerMisTrabajos(mechanicId));
+    }
+
+    private UserDetailsImpl usuarioActual(Authentication authentication) {
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof UserDetailsImpl usuario) {
+            return usuario;
+        }
+        throw new AccessDeniedException("No autenticado");
+    }
+
+    private boolean puedeVerTodasLasOrdenes(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ORDENES:VER".equals(authority.getAuthority()));
     }
 }

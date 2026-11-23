@@ -58,4 +58,14 @@ public class Usuario extends Auditable {
 
     @Column(name = "version_token", nullable = false)
     private int tokenVersion = 0;
+
+    @Builder.Default
+    @Column(name = "mfa_habilitado", nullable = false)
+    private Boolean mfaEnabled = false;
+
+    @Column(name = "mfa_secreto", length = 64)
+    private String mfaSecret;
+
+    @Column(name = "mfa_codigos_recuperacion", columnDefinition = "TEXT")
+    private String mfaRecoveryCodes;
 }

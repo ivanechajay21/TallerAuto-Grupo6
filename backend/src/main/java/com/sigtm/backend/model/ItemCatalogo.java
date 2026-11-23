@@ -11,7 +11,10 @@ import lombok.*;
  * distintos módulos del taller.</p>
  */
 @Entity
-@Table(name = "catalog_items")
+@Table(name = "catalog_items", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_catalog_tipo_codigo", columnNames = {"tipo", "codigo"}),
+        @UniqueConstraint(name = "uk_catalog_tipo_nombre", columnNames = {"tipo", "nombre"})
+})
 @Getter
 @Setter
 @NoArgsConstructor

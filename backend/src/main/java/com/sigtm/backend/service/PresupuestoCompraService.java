@@ -63,7 +63,7 @@ public class PresupuestoCompraService {
                 : percentage.compareTo(BigDecimal.valueOf(budget.getAlertPercentage())) >= 0 ? "ALERTA"
                 : "DISPONIBLE";
         return new EstadoPresupuestoCompraResponse(period, budget.getLimitAmount(), committed,
-                budget.getLimitAmount().subtract(committed), percentage, status);
+                budget.getLimitAmount().subtract(committed), percentage, budget.getAlertPercentage(), status);
     }
 
     private void validar(PresupuestoCompra data) {

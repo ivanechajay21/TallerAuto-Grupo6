@@ -102,14 +102,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED, "Usuario o contraseña incorrectos."),
-                HttpStatus.UNAUTHORIZED);
+        String message = ex.getMessage();
+        if (message == null || message.isBlank() || "Bad credentials".equalsIgnoreCase(message)) {
+            message = "Usuario o contraseña incorrectos.";
+        }
+        return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED, message), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
+        // No revelar si la cuenta existe o está desactivada.
         return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED,
-                "Tu cuenta está desactivada. Contacta al administrador."), HttpStatus.UNAUTHORIZED);
+                "Usuario o contraseña incorrectos."), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(TooManyRequestsException.class)

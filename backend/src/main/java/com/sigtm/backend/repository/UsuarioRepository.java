@@ -2,6 +2,7 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * búsqueda como su verificación de disponibilidad antes de crear una cuenta.</p>
  */
 @Repository
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpecificationExecutor<Usuario> {
     /**
      * Busca un usuario por su nombre de usuario.
      *
@@ -30,6 +31,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @return el usuario encontrado o vacío si el correo no está registrado.
      */
     Optional<Usuario> findByEmail(String email);
+
+    /**
+     * Busca un usuario por su correo sin distinguir mayúsculas ni minúsculas.
+     *
+     * @param email correo electrónico del usuario.
+     * @return el usuario encontrado o vacío si el correo no está registrado.
+     */
+    Optional<Usuario> findByEmailIgnoreCase(String email);
 
     /**
      * Comprueba si ya existe un usuario con el nombre de usuario indicado.
@@ -61,4 +70,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @return usuarios marcados como activos.
      */
     List<Usuario> findByActiveTrue();
+
+    long countByActiveTrue();
+
+    long countByActiveFalse();
 }
