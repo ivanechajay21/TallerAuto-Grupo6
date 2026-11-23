@@ -1,0 +1,14 @@
+# Perfil PostgreSQL. Se activa con SPRING_PROFILES_ACTIVE=postgres.
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/sigtm_db}
+    username: ${DB_USERNAME:sigtm_user}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
