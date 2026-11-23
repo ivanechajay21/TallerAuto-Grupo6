@@ -45,6 +45,7 @@ services:
       - "8080:8080"
     environment:
       - TZ=America/Lima
+      - SPRING_PROFILES_ACTIVE=mysql
       - DB_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
       - DB_USERNAME=${MYSQL_USER}
       - DB_PASSWORD=${MYSQL_PASSWORD}

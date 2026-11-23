@@ -2,6 +2,7 @@ package com.sigtm.backend.service;
 
 import com.sigtm.backend.model.CorrelativoComprobante;
 import com.sigtm.backend.model.TipoComprobante;
+import com.sigtm.backend.repository.CorrelativoComprobanteInitializer;
 import com.sigtm.backend.repository.CorrelativoComprobanteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CorrelativoComprobanteService {
 
     private final CorrelativoComprobanteRepository repository;
+    private final CorrelativoComprobanteInitializer initializer;
 
     /**
      * Reserva y devuelve el siguiente correlativo del tipo y año indicados.
@@ -31,7 +33,7 @@ public class CorrelativoComprobanteService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public long siguiente(TipoComprobante tipo, int anio) {
-        repository.crearSiNoExiste(tipo.name(), tipo.getSerie(), anio);
+        initializer.crearSiNoExiste(tipo.name(), tipo.getSerie(), anio);
 
         CorrelativoComprobante contador = repository.buscarParaActualizar(tipo, tipo.getSerie(), anio)
                 .orElseThrow(() -> new IllegalStateException("No se pudo obtener el correlativo del comprobante"));
