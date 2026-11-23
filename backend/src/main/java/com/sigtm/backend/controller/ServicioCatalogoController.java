@@ -31,15 +31,21 @@ public class ServicioCatalogoController {
     /**
      * Lista los servicios activos del catálogo.
      *
-     * <p>Exige {@code ORDENES:VER} o {@code MI_TRABAJO:VER}. Solo devuelve los
-     * servicios vigentes, no los desactivados.</p>
+     * <p>Exige {@code ORDENES:VER}, {@code MI_TRABAJO:VER} o
+     * {@code CONFIGURACION:VER}. Por defecto devuelve solo los servicios vigentes.
+     * Configuración puede pedir {@code incluirInactivos=true} para poder reactivar
+     * un servicio desactivado.</p>
      *
-     * @return la lista de servicios activos (200)
+     * @param incluirInactivos {@code true} para incluir los servicios desactivados
+     * @return la lista de servicios (200)
      */
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ORDENES:VER', 'MI_TRABAJO:VER')")
-    public ResponseEntity<List<ServicioCatalogo>> obtenerActivos() {
-        return ResponseEntity.ok(servicioCatalogoService.obtenerActivos());
+    @PreAuthorize("hasAnyAuthority('ORDENES:VER', 'MI_TRABAJO:VER', 'CONFIGURACION:VER')")
+    public ResponseEntity<List<ServicioCatalogo>> obtenerActivos(
+            @RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        return ResponseEntity.ok(incluirInactivos
+                ? servicioCatalogoService.obtenerTodos()
+                : servicioCatalogoService.obtenerActivos());
     }
 
     /**
@@ -52,7 +58,7 @@ public class ServicioCatalogoController {
      * @return el servicio solicitado (200)
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ORDENES:VER')")
+    @PreAuthorize("hasAnyAuthority('ORDENES:VER', 'CONFIGURACION:VER')")
     public ResponseEntity<ServicioCatalogo> obtenerPorId(@PathVariable Long id) {
         return ResponseEntity.ok(servicioCatalogoService.obtenerPorId(id));
     }

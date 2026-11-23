@@ -1,6 +1,6 @@
 # Evaluación de arquitectura y buenas prácticas — SIGTM
 
-> **Fecha:** 5 de octubre de 2026
+> **Fecha:** 5 de noviembre de 2026
 > Evaluación basada en el código fuente del proyecto (backend Spring Boot + frontend React).
 
 ## Veredicto rápido
@@ -9,7 +9,7 @@
 |---|---|:--:|---|
 | **MVC** | ✅ | Alto | Adaptado a API REST + SPA (no MVC clásico con vistas server-side) |
 | **DAO** | ✅ | Alto | Repositorios Spring Data JPA (patrón DAO/Repository) |
-| **TDD** | ❌ → ⚠️ | Bajo | No había pruebas; ya se añadió una primera suite |
+| **TDD** | ❌ → ✅ | Medio | 163 pruebas backend + 28 frontend, incluyendo integración con MySQL real, compras, aprobaciones y generación de PDF |
 | **SOLID** | ⚠️ | Medio | Aplicado de forma pragmática, no estricta |
 | **Seguridad** | ✅ | Alto | JWT + BCrypt + autorización por permiso por endpoint |
 
@@ -18,7 +18,7 @@
 ## 1) MVC — ✅ (variante API + SPA)
 
 **Evidencia**
-- `controller/` (17) → `service/` (19) → `repository/` (19) → `model/` (22).
+- `controller/` (36) → `service/` (38) → `repository/` (41) → `model/` (51 entidades y enums).
 - Los controladores reciben la petición HTTP, delegan en el servicio y devuelven **JSON** (DTOs/mapas).
 - La **Vista (V)** es el **SPA** en `frontend/` (React), que consume la API. No hay vistas server-side.
 
@@ -27,7 +27,7 @@
 ## 2) DAO — ✅
 
 **Evidencia**
-- 19 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById`).
+- 41 interfaces en `repository/` extendiendo `JpaRepository` (consultas derivadas, `@Query` y `@Lock` pesimista, p. ej. `ProductoRepository.findWithLockingById` y `CorrelativoComprobanteRepository`).
 - El acceso a datos está **separado** de la lógica (`service`) y del API (`controller`).
 
 **Conclusión:** el patrón **DAO/Repository** está bien implementado mediante Spring Data JPA.
@@ -56,8 +56,17 @@
   - *(Requiere el módulo de test `spring-boot-starter-webmvc-test`, añadido al `pom.xml`.)*
 - `backend/src/test/java/com/sigtm/backend/controller/RolControllerTest.java` — **11 pruebas de la capa web** centradas en la **autorización por rol**: la consulta exige `ROLES:VER`; **todas las escrituras (crear/actualizar/eliminar roles y asignar permisos) exigen rol `ADMIN`** → un usuario con `ROLE_MANAGER` recibe **403**; también se cubren `200`, `204` y `404`.
 - `backend/src/test/java/com/sigtm/backend/controller/OrdenTrabajoControllerTest.java` — **5 pruebas de la capa web** (`@WebMvcTest` + MockMvc) para los ítems de una orden: agregar exige `ITEMS:CREAR`, actualizar `ITEMS:EDITAR` y eliminar `ITEMS:ELIMINAR`; se cubre la asignación de un mecánico mediante `mechanicId` y el rechazo con **403** cuando falta el permiso.
-- **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3) y `Vehicles.test.tsx` (4) → **23 pruebas**. Se añadió el script `npm test`, `vitest.config.ts` y los tests se excluyen del `tsc` de producción.
-- Resultado: **backend 51** (`mvn -Dtest=ProductoServiceTest,RolServiceTest,ProductoControllerTest,RolControllerTest,OrdenTrabajoControllerTest test`) **+ frontend 23** (`npm test`) = **74 pruebas**, todas en verde.
+- `backend/src/test/java/com/sigtm/backend/service/FacturaServiceTest.java` — **11 pruebas** de emisión y cobro: IGV y redondeo, factura con RUC, boleta con DNI, series `F001`/`B001`, rechazo por estado/ítems/precio/documento, pago único y método de pago válido.
+- `backend/src/test/java/com/sigtm/backend/controller/FacturaControllerTest.java` — **12 pruebas de la capa web** para el contrato de comprobantes: `200`, `400` (parámetro faltante/id inválido), `403`, `404`, `409`, elección Factura/Boleta y no filtración de SQL en errores internos.
+- `backend/src/test/java/com/sigtm/backend/service/FacturaIntegrationTest.java` — **3 pruebas de integración** con MySQL efímero (Testcontainers): persistencia de `fecha_emision`, serie/correlativo, boleta con DNI y rechazo de factura sin RUC.
+- `backend/src/test/java/com/sigtm/backend/service/UsuarioServiceTest.java` — **6 pruebas** contra la escalada de privilegios: un no administrador no puede asignarse `ROLE_ADMIN`, crear administradores, modificar a un administrador ni desactivarlo; también se cubre la autodesactivación.
+- `backend/src/test/java/com/sigtm/backend/controller/AuthControllerSecurityTest.java` — **2 pruebas con los filtros reales de Spring Security**: `/api/autenticacion/perfil` devuelve **401** sin token y **200** con una sesión autenticada.
+- `BackendApplicationTests` — **2 pruebas de contexto**: carga de la aplicación y `GET /actuator/health` público con estado `UP`.
+- `backend/src/test/java/com/sigtm/backend/service/ComprasSerializationIntegrationTest.java` — **1 prueba de integración con MySQL real** que crea proveedor, producto, orden, factura, pago, contrato, solicitud, pronóstico, plan, incidencia y seguimiento, y verifica los listados DTO sin `LazyInitializationException`.
+- `backend/src/test/java/com/sigtm/backend/service/InspeccionRecepcionCompraServiceTest.java` — **3 pruebas** de cantidades, producto ajeno y auditoría de inspecciones.
+- `AprobacionCompraServiceTest` (5), `CuentaPorPagarServiceTest` (8), `ContratoProveedorServiceTest` (5), `ReposicionServiceTest` (6), `SeguimientoCompraServiceTest` (5), `PresupuestoCompraServiceTest` (5) y `TableroAbastecimientoServiceTest` (1) cubren la Fase 2.
+- **Frontend** (Vitest + Testing Library + jsdom): `Pagination.test.tsx` (5), `usePagination.test.ts` (4), `Login.test.tsx` (3), `Reports.test.tsx` (4), `Inventory.test.tsx` (3), `Vehicles.test.tsx` (4), `Billing.test.tsx` (3) e `invoicePdfService.test.ts` (2) → **28 pruebas**.
+- Resultado: **backend 163** (`./mvnw test`, incluye Testcontainers) **+ frontend 28** (`npm test`) = **191 pruebas**, todas en verde.
 
 **Cobertura por capa**
 | Capa | Suite | Pruebas |
@@ -94,9 +103,10 @@
 **Evidencia** (`WebSecurityConfig` + paquete `security/`)
 - **JWT** (`jjwt`) con sesión **STATELESS** y `AuthTokenFilter` que **recarga los permisos desde BD** en cada petición.
 - **Contraseñas cifradas** con `BCryptPasswordEncoder` (nunca en texto plano).
-- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en ~76 endpoints; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
-- **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados (`/api/autenticacion/**`, `/uploads/**`, `/error`).
-- Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler`.
+- **Autorización por permiso** `@PreAuthorize("hasAuthority('MODULO:ACCION')")` en 139 de los 148 mappings HTTP; `hasRole('ADMIN')` en las escrituras de roles; `@EnableMethodSecurity`.
+- **CORS** configurable; entry point 401 personalizado; endpoints públicos acotados a login/recuperación (`/api/autenticacion/ingresar`, `/olvidar-contrasena`, `/restablecer-contrasena`), `/uploads/**`, `/actuator/health` y `/error`; `/api/autenticacion/perfil` exige sesión.
+- **Anti-escalada de privilegios**: `UsuarioService` impide que un no administrador cree o asigne `ROLE_ADMIN`, modifique a un administrador o lo desactive.
+- Complementos: **auditoría** de acciones, validación con `@Valid` y `GlobalExceptionHandler` que no filtra SQL ni mensajes internos.
 
 **Observaciones / riesgos**
 - El CORS por defecto es `*` (`app.cors.allowed-origins`) → **restringir orígenes en producción**.
@@ -121,6 +131,6 @@
 - **DAO** vía Spring Data JPA ✅.
 - **Seguridad** fuerte (JWT, BCrypt, permisos por endpoint) ✅.
 - **SOLID** aplicado de forma pragmática ⚠️.
-- **TDD** era el punto débil ❌; ahora hay **74 pruebas** (51 backend + 23 frontend) que cubren servicio, capa web y UI.
+- **TDD** era el punto débil ❌; ahora hay **191 pruebas** (163 backend + 28 frontend) que cubren servicio, persistencia real con Testcontainers, compras, aprobaciones, seguridad con filtros reales, healthcheck, generación de PDF, capa web y UI.
 
 Documentos relacionados: [`API.md`](../API.md) · [`ESTADISTICAS.md`](./ESTADISTICAS.md)

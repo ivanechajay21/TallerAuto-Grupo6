@@ -10,8 +10,11 @@ import java.util.Optional;
 /**
  * Acceso a datos de las facturas emitidas por el taller.
  *
- * <p>Permite localizar una factura por su número, por la orden de trabajo que la originó
- * o por su estado de cobro.</p>
+ * <p>
+ * Permite localizar una factura por su número, por la orden de trabajo que la
+ * originó
+ * o por su estado de cobro.
+ * </p>
  */
 @Repository
 public interface FacturaRepository extends JpaRepository<Factura, Long> {

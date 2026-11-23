@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -15,6 +13,12 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - sigtm_network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     restart: unless-stopped
 
   phpmyadmin:
@@ -26,7 +30,8 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - sigtm_network
     restart: unless-stopped
@@ -44,6 +49,13 @@ services:
       - DB_USERNAME=${MYSQL_USER}
       - DB_PASSWORD=${MYSQL_PASSWORD}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - JWT_EXPIRATION_MS=${JWT_EXPIRATION_MS:-7200000}
+      - JWT_ISSUER=${JWT_ISSUER:-sigtm-backend}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-sigtm-web}
+      - MFA_REQUIRED_FOR_ADMIN=${MFA_REQUIRED_FOR_ADMIN:-true}
+      - MFA_ISSUER=${MFA_ISSUER:-SIGTM}
+      - COOKIE_SECURE=${COOKIE_SECURE:-false}
+      - COOKIE_SAME_SITE=${COOKIE_SAME_SITE:-Strict}
       - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
       - MAIL_PORT=${MAIL_PORT:-587}
       - MAIL_USERNAME=${MAIL_USERNAME:-}
@@ -52,13 +64,20 @@ services:
       - UPLOAD_DIR=/app/uploads
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       - SEED_DATA=${SEED_DATA:-true}
-      - USE_APACHE_POI=${USE_APACHE_POI:-false}
+      - USE_APACHE_POI=${USE_APACHE_POI:-true}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - sigtm_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
   frontend:
@@ -66,14 +85,21 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_USE_APACHE_POI: ${USE_APACHE_POI:-false}
+        VITE_USE_APACHE_POI: ${USE_APACHE_POI:-true}
     container_name: sigtm_frontend
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - sigtm_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
 volumes:

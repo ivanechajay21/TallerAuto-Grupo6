@@ -23,7 +23,7 @@ SIGTM es una aplicación web compuesta por un frontend React, una API Spring Boo
 | Restablecimiento | Token aleatorio de 32 bytes, de un uso, con vencimiento y almacenado como hash SHA-256. | `AuthService`, `TokenResetContrasena` |
 | Archivos | Solo JPEG/PNG válidos, máximo 10 MB por archivo y diez fotografías por recepción. | `StorageService`, `RecepcionController` |
 | Exportación Excel | Endpoint autorizado, datos obtenidos en el servidor y celdas de texto protegidas de formula injection. | `ReporteController`, `ReporteExcelService` |
-| API web | CORS centralizado y limitado por `CORS_ALLOWED_ORIGINS`; sesiones stateless; CSRF desactivado para API Bearer. | `WebSecurityConfig` |
+| API web | CORS con credenciales y CSRF por doble cookie; sesiones stateless con JWT en cookie HttpOnly. | `WebSecurityConfig`, `CsrfCookieFilter` |
 | Frontend | Cabeceras CSP, anti-clickjacking, `nosniff`, política de referer y permisos del navegador. | `frontend/nginx.conf` |
 | Secretos y despliegue | Credenciales y JWT obligatorios por variables de entorno; sin secretos de producción en código. | `.env.example`, `docker-compose.yml`, `application.yml` |
 
@@ -32,7 +32,7 @@ SIGTM es una aplicación web compuesta por un frontend React, una API Spring Boo
 ### Autenticación y contraseñas
 
 - Spring Security autentica a cada usuario mediante `DaoAuthenticationProvider`.
-- Las contraseñas se codifican con `BCryptPasswordEncoder`; nunca se persisten ni devuelven como texto plano.
+- Las contraseñas se codifican con `BCryptPasswordEncoder` (fuerza 12) y se aplica una política mínima de 12 caracteres, categorías y bloqueo de datos del usuario.
 - La creación, actualización y recuperación de contraseña exigen al menos **12 caracteres**.
 - Las cuentas desactivadas no pueden autenticarse, porque `UserDetailsImpl.isEnabled()` usa el estado persistido del usuario.
 
@@ -46,7 +46,7 @@ La sesión deja de ser válida cuando:
 - Se desactiva la cuenta.
 - El token expira.
 
-Esto limita el uso de sesiones robadas y hace que los cambios de permisos se apliquen en la siguiente solicitud. Los valores de `Authorization` y JWT no se escriben en los logs.
+Esto limita el uso de sesiones robadas y hace que los cambios de permisos se apliquen en la siguiente solicitud. Los valores de JWT, cookies y `Authorization` no se escriben en los logs.
 
 ### Prevención de abuso
 
@@ -76,7 +76,7 @@ El token que viaja por correo no se almacena en texto claro: antes de persistirs
 
 - CORS se configura en un único punto con `CORS_ALLOWED_ORIGINS`; no se usa el comodín global.
 - La API usa validación Bean Validation en las solicitudes que la declaran y maneja errores de forma uniforme.
-- La sesión es `STATELESS` y CSRF está desactivado porque la autenticación se realiza con `Authorization: Bearer`, no con cookies de sesión.
+- La sesión es `STATELESS`; el JWT viaja en cookie HttpOnly y CSRF se protege con doble cookie (`XSRF-TOKEN` + `X-XSRF-TOKEN`).
 - Las respuestas de error no incluyen trazas internas del servidor.
 
 ### Carga de archivos

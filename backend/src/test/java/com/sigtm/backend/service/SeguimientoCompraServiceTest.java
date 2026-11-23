@@ -24,7 +24,7 @@ class SeguimientoCompraServiceTest {
 
     @Test
     void creaSeguimientoLogisticoDeOrden() {
-        OrdenCompra order = OrdenCompra.builder().id(4L).code("OC-1").build();
+        OrdenCompra order = OrdenCompra.builder().id(4L).code("OC-1").status("PENDIENTE").build();
         SeguimientoCompra input = SeguimientoCompra.builder().status("EN_TRANSITO").carrier("Transportes SAC")
                 .dispatchedAt(LocalDate.of(2026, 10, 1)).estimatedArrival(LocalDate.of(2026, 10, 3)).build();
         when(orders.findDetailedById(4L)).thenReturn(Optional.of(order));
@@ -40,7 +40,7 @@ class SeguimientoCompraServiceTest {
 
     @Test
     void rechazaEstadoLogisticoDesconocido() {
-        when(orders.findDetailedById(4L)).thenReturn(Optional.of(OrdenCompra.builder().id(4L).build()));
+        when(orders.findDetailedById(4L)).thenReturn(Optional.of(OrdenCompra.builder().id(4L).status("PENDIENTE").build()));
         SeguimientoCompra input = SeguimientoCompra.builder().status("PERDIDA").build();
 
         assertThrows(IllegalArgumentException.class, () -> service().actualizar(4L, input));
@@ -52,5 +52,27 @@ class SeguimientoCompraServiceTest {
         when(orders.findDetailedById(4L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> service().actualizar(4L, SeguimientoCompra.builder().status("ENVIADA").build()));
+    }
+
+    @Test
+    void exigeFechaRealCuandoSeMarcaEntregada() {
+        when(orders.findDetailedById(4L)).thenReturn(Optional.of(
+                OrdenCompra.builder().id(4L).status("PENDIENTE").build()));
+
+        assertThrows(IllegalArgumentException.class, () -> service().actualizar(4L,
+                SeguimientoCompra.builder().status("ENTREGADA").build()));
+        verify(tracking, never()).save(any());
+    }
+
+    @Test
+    void noPermiteRetrocederElEstadoLogistico() {
+        when(orders.findDetailedById(4L)).thenReturn(Optional.of(
+                OrdenCompra.builder().id(4L).status("PENDIENTE").build()));
+        when(tracking.findByPurchaseOrderId(4L)).thenReturn(Optional.of(
+                SeguimientoCompra.builder().id(8L).status("ENTREGADA").build()));
+
+        assertThrows(IllegalArgumentException.class, () -> service().actualizar(4L,
+                SeguimientoCompra.builder().status("ENVIADA").build()));
+        verify(tracking, never()).save(any());
     }
 }

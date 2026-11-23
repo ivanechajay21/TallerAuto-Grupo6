@@ -29,6 +29,29 @@ public class CitaController {
 
     // Acceso por permiso del módulo CITAS (administrado desde Roles y Permisos).
     /**
+     * Devuelve las citas paginadas con pestaña, búsqueda, filtro y resumen.
+     *
+     * <p>Exige {@code CITAS:VER}. El resumen se calcula sobre toda la agenda.</p>
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página
+     * @param tab    {@code proximas} o {@code historial}
+     * @param search texto libre opcional
+     * @param status estado exacto o {@code TODAS}
+     * @return la página de citas y el resumen (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('CITAS:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "proximas") String tab,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "TODAS") String status) {
+        return ResponseEntity.ok(citaService.buscarPaginado(page, size, tab, search, status));
+    }
+
+    /**
      * Lista todas las citas registradas.
      *
      * <p>Exige {@code CITAS:VER}. Cada cita incluye el cliente y el vehículo
@@ -112,5 +135,40 @@ public class CitaController {
             @PathVariable Long id,
             @RequestParam String status) {
         return ResponseEntity.ok(citaService.actualizarEstado(id, status));
+    }
+
+    /**
+     * Actualiza los datos de una cita pendiente.
+     *
+     * <p>Exige {@code CITAS:EDITAR}; solo se permite mientras la cita está en
+     * estado {@code PENDING}. El cliente y el vehículo no se reasignan desde este
+     * endpoint.</p>
+     *
+     * @param id   identificador de la cita
+     * @param cita nuevos datos de fecha, hora, servicio y observaciones
+     * @return la cita actualizada (200)
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CITAS:EDITAR')")
+    public ResponseEntity<Map<String, Object>> actualizarCita(
+            @PathVariable Long id,
+            @RequestBody Cita cita) {
+        return ResponseEntity.ok(citaService.actualizarCita(id, cita));
+    }
+
+    /**
+     * Elimina una cita pendiente.
+     *
+     * <p>Exige {@code CITAS:ELIMINAR}. Las citas confirmadas o cerradas no se
+     * eliminan; deben pasar por su flujo de estado.</p>
+     *
+     * @param id identificador de la cita
+     * @return respuesta sin contenido (204)
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CITAS:ELIMINAR')")
+    public ResponseEntity<Void> eliminarCita(@PathVariable Long id) {
+        citaService.eliminarCita(id);
+        return ResponseEntity.noContent().build();
     }
 }

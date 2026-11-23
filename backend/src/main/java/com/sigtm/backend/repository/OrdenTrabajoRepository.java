@@ -2,6 +2,7 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.OrdenTrabajo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * por vehículo y por estado de avance.</p>
  */
 @Repository
-public interface OrdenTrabajoRepository extends JpaRepository<OrdenTrabajo, Long> {
+public interface OrdenTrabajoRepository extends JpaRepository<OrdenTrabajo, Long>, JpaSpecificationExecutor<OrdenTrabajo> {
     /**
      * Busca una orden de trabajo por su número.
      *
@@ -46,4 +47,10 @@ public interface OrdenTrabajoRepository extends JpaRepository<OrdenTrabajo, Long
      * @return órdenes con el estado indicado.
      */
     List<OrdenTrabajo> findByStatus(String status);
+
+    long countByStatus(String status);
+
+    long countByStatusNot(String status);
+
+    long countByStatusNotAndPriorityIgnoreCase(String status, String priority);
 }

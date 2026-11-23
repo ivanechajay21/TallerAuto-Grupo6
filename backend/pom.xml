@@ -28,6 +28,10 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!-- La cobertura se activa explícitamente en CI con -Djacoco.skip=false.
+		     Así las pruebas locales en JDK 26 no instrumentan clases sintéticas
+		     de Mockito/ByteBuddy generadas con una versión de bytecode más nueva. -->
+		<jacoco.skip>true</jacoco.skip>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -50,6 +54,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- Health checks para Docker, balanceadores y monitoreo. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>com.mysql</groupId>
@@ -71,6 +80,23 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>5.4.1</version>
+		</dependency>
+		<!-- Generación de documentos PDF en el servidor. -->
+		<dependency>
+			<groupId>com.github.librepdf</groupId>
+			<artifactId>openpdf</artifactId>
+			<version>2.0.3</version>
+		</dependency>
+		<!-- Generación del código QR para el alta de MFA. -->
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.5.3</version>
 		</dependency>
 		<!-- Utilidades de propósito general para colecciones, caché y concurrencia. -->
 		<dependency>
@@ -141,6 +167,18 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- MySQL real y efímero para las pruebas de contexto.
+		     Evita depender de un MySQL local y de DB_PASSWORD/JWT_SECRET manuales. -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-mysql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -182,6 +220,39 @@
 								</path>
 							</annotationProcessorPaths>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Cobertura de pruebas. El reporte HTML queda en target/site/jacoco
+			     y el CI lo publica como artefacto. -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<configuration>
+					<skip>${jacoco.skip}</skip>
+					<!-- Mockito genera clases auxiliares en tiempo de ejecución; no son
+					     código de producción y el agente no debe intentar instrumentarlas. -->
+					<excludes>
+						<exclude>**/*$MockitoMock*</exclude>
+						<exclude>**/*$auxiliary*</exclude>
+						<exclude>net/bytebuddy/**</exclude>
+						<exclude>org/mockito/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

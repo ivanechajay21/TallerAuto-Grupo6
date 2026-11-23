@@ -130,7 +130,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers(Map<String, Rol> roles) {
-        seedUser("admin", "admin123", "Admin", "System", roles.get("ROLE_ADMIN"));
+        seedUser("admin", "admin123", "Administrador", "del Sistema", roles.get("ROLE_ADMIN"));
         seedUser("gerente", "gerente123", "Gerente", "Taller", roles.get("ROLE_MANAGER"));
         seedUser("recepcion", "recepcion123", "Recepcionista", "Taller", roles.get("ROLE_RECEPTIONIST"));
         seedUser("mecanico", "mecanico123", "Mecánico", "Taller", roles.get("ROLE_MECHANIC"));
@@ -170,7 +170,6 @@ public class DataInitializer implements CommandLineRunner {
                 new SubmoduleSpec("SUPPLIERS", "PROVEEDORES", "Proveedores", "VER", "CREAR", "EDITAR", "ELIMINAR"),
                 new SubmoduleSpec("PURCHASES", "COMPRAS", "Compras", "VER", "CREAR", "EDITAR", "APROBAR", "RECEPCIONAR", "DEVOLVER", "ANULAR"),
                 new SubmoduleSpec("BILLING", "FACTURAS", "Facturas", "VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR", "APROBAR"),
-                new SubmoduleSpec("BILLING_QUOTES", "COTIZACIONES", "Cotizaciones", "VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR", "APROBAR"),
                 new SubmoduleSpec("REPORTS", "REPORTES", "Reportes", "VER", "EXPORTAR"),
                 new SubmoduleSpec("AUDIT", "AUDITORIA", "Auditoría", "VER", "EXPORTAR"),
                 new SubmoduleSpec("CONFIG", "CONFIGURACION", "Configuración", "VER", "EDITAR"),

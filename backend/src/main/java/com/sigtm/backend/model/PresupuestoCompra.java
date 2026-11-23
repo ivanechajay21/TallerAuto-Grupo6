@@ -2,6 +2,10 @@ package com.sigtm.backend.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.YearMonth;
@@ -12,9 +16,9 @@ import java.time.YearMonth;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PresupuestoCompra extends Auditable {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
-    @Column(name = "periodo", nullable = false, unique = true, length = 7) private String period;
-    @DecimalMin("0.01") @Column(name = "limite", nullable = false, precision = 12, scale = 2) private BigDecimal limitAmount;
-    @Column(name = "alerta_porcentaje", nullable = false) private Integer alertPercentage;
+    @NotBlank @Column(name = "periodo", nullable = false, unique = true, length = 7) private String period;
+    @NotNull @DecimalMin("0.01") @Column(name = "limite", nullable = false, precision = 12, scale = 2) private BigDecimal limitAmount;
+    @NotNull @Min(0) @Max(100) @Column(name = "alerta_porcentaje", nullable = false) private Integer alertPercentage;
     @Builder.Default @Column(nullable = false) private Boolean active = true;
     public YearMonth yearMonth() { return YearMonth.parse(period); }
 }

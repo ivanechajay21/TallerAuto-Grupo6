@@ -1,6 +1,7 @@
 package com.sigtm.backend.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,8 +16,12 @@ import lombok.Setter;
 @Setter
 public class LoginRequest {
     @NotBlank(message = "El usuario es obligatorio")
+    @Size(max = 50, message = "El usuario no puede superar 50 caracteres")
     private String username;
 
     @NotBlank(message = "La contraseña es obligatoria")
+    @Size(max = 72, message = "La contraseña no puede superar 72 caracteres")
     private String password;
+
+    private Boolean remember = true;
 }

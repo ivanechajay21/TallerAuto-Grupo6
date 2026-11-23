@@ -22,6 +22,7 @@ public class NotificacionService {
 
     private final NotificacionRepository notificacionRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ConfiguracionService configuracionService;
 
     /**
      * Crea una notificación interna para un usuario concreto.
@@ -39,6 +40,9 @@ public class NotificacionService {
      */
     @Transactional
     public Notificacion crear(Long userId, String module, String title, String message, String link) {
+        if (!configuracionService.notificacionActiva(module, title)) {
+            return null;
+        }
         Usuario usuario = usuarioRepository.findById(userId).orElse(null);
         if (usuario == null) {
             return null;

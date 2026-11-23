@@ -1,14 +1,19 @@
 package com.sigtm.backend.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
@@ -58,6 +63,37 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
+        log.warn("Solicitud inválida: {}", ex.getMessage());
+        return new ResponseEntity<>(buildBody(HttpStatus.BAD_REQUEST, ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.BAD_REQUEST,
+                "Falta el parámetro obligatorio: " + ex.getParameterName()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.BAD_REQUEST,
+                "Valor inválido para el parámetro: " + ex.getName()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.BAD_REQUEST,
+                "El cuerpo de la solicitud no es válido."), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Conflicto de integridad de datos: {}", ex.getMostSpecificCause().getMessage());
+        return new ResponseEntity<>(buildBody(HttpStatus.CONFLICT,
+                "No se pudo guardar el registro porque infringe una restricción de datos."), HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         return new ResponseEntity<>(buildBody(HttpStatus.FORBIDDEN, "No tienes permisos para realizar esta acción."),
@@ -66,14 +102,18 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED, "Usuario o contraseña incorrectos."),
-                HttpStatus.UNAUTHORIZED);
+        String message = ex.getMessage();
+        if (message == null || message.isBlank() || "Bad credentials".equalsIgnoreCase(message)) {
+            message = "Usuario o contraseña incorrectos.";
+        }
+        return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED, message), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<Map<String, Object>> handleDisabled(DisabledException ex) {
+        // No revelar si la cuenta existe o está desactivada.
         return new ResponseEntity<>(buildBody(HttpStatus.UNAUTHORIZED,
-                "Tu cuenta está desactivada. Contacta al administrador."), HttpStatus.UNAUTHORIZED);
+                "Usuario o contraseña incorrectos."), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(TooManyRequestsException.class)
@@ -81,10 +121,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(buildBody(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage()), HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        return new ResponseEntity<>(buildBody(HttpStatus.NOT_FOUND, "Recurso no encontrado"),
+                HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         log.error("Excepción no controlada (RuntimeException): ", ex);
-        return new ResponseEntity<>(buildBody(HttpStatus.BAD_REQUEST, ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(buildBody(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor"),
+                HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)

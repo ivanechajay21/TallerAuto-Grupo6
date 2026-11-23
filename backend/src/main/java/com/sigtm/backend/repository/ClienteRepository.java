@@ -2,6 +2,7 @@ package com.sigtm.backend.repository;
 
 import com.sigtm.backend.model.Cliente;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -13,7 +14,7 @@ import java.util.Optional;
  * resuelve a un único cliente cuando el valor coincide.</p>
  */
 @Repository
-public interface ClienteRepository extends JpaRepository<Cliente, Long> {
+public interface ClienteRepository extends JpaRepository<Cliente, Long>, JpaSpecificationExecutor<Cliente> {
     /**
      * Busca un cliente por su número de documento.
      *
@@ -21,4 +22,10 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
      * @return el cliente encontrado o vacío si el documento no está registrado.
      */
     Optional<Cliente> findByDocumentNumber(String documentNumber);
+
+    long countByActiveTrue();
+
+    long countByActiveFalse();
+
+    long countByWhatsappIsNotNullAndWhatsappNot(String whatsapp);
 }

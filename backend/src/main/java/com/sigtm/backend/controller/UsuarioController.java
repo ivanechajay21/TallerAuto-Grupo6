@@ -42,6 +42,29 @@ public class UsuarioController {
     // Acceso por permiso del módulo USUARIOS. El listado de mecánicos es dato de
     // apoyo para las Órdenes (la recepcionista asigna mecánicos desde ORDENES:VER).
     /**
+     * Devuelve los usuarios paginados con búsqueda, filtros y resumen.
+     *
+     * <p>Exige {@code USUARIOS:VER}.</p>
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param role   nombre de rol exacto o {@code TODOS}
+     * @return la página de usuarios y el resumen (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('USUARIOS:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "TODOS") String status,
+            @RequestParam(required = false, defaultValue = "TODOS") String role) {
+        return ResponseEntity.ok(usuarioService.buscarPaginado(page, size, search, status, role));
+    }
+
+    /**
      * Lista todos los usuarios del sistema.
      *
      * <p>Exige {@code USUARIOS:VER}. Cada usuario se devuelve como mapa con sus
@@ -99,6 +122,34 @@ public class UsuarioController {
     @GetMapping("/actual/permisos")
     public ResponseEntity<java.util.List<String>> obtenerMisPermisos() {
         return ResponseEntity.ok(usuarioService.obtenerMisPermisos(idUsuarioActual()));
+    }
+
+    /**
+     * Registra actividad del usuario autenticado para el indicador en línea.
+     *
+     * <p>No exige permiso de módulo: cualquier sesión válida mantiene actualizada
+     * su presencia mientras usa el sistema.</p>
+     *
+     * @return respuesta sin contenido (204)
+     */
+    @PostMapping("/presencia")
+    public ResponseEntity<Void> registrarPresencia() {
+        usuarioService.registrarActividad(idUsuarioActual());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Devuelve los identificadores de usuarios con actividad reciente.
+     *
+     * <p>Exige {@code USUARIOS:VER}. El frontend lo consulta periódicamente para
+     * mostrar el estado en línea en tiempo real.</p>
+     *
+     * @return identificadores de usuarios en línea (200)
+     */
+    @GetMapping("/presencia")
+    @PreAuthorize("hasAuthority('USUARIOS:VER')")
+    public ResponseEntity<java.util.Set<Long>> obtenerPresencia() {
+        return ResponseEntity.ok(usuarioService.usuariosEnLinea());
     }
 
     /**

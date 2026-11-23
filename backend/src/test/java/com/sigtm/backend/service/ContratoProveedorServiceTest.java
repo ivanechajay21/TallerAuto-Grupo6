@@ -58,6 +58,52 @@ class ContratoProveedorServiceTest {
                 .crear(99L, contract(LocalDate.now(), LocalDate.now().plusDays(1))));
     }
 
+    @Test
+    void rechazaContratoConFechasNulas() {
+        when(suppliers.findById(5L)).thenReturn(Optional.of(Proveedor.builder().id(5L).build()));
+        ContratoProveedor input = ContratoProveedor.builder().currency("PEN")
+                .discountPercentage(BigDecimal.ZERO).paymentDays(30)
+                .minimumPurchase(BigDecimal.ZERO).build();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new ContratoProveedorService(contracts, suppliers, audit).crear(5L, input));
+        verify(contracts, never()).save(any());
+    }
+
+    @Test
+    void actualizaContratoDelProveedorYLoReactiva() {
+        Proveedor supplier = Proveedor.builder().id(5L).businessName("Proveedor").build();
+        ContratoProveedor existing = ContratoProveedor.builder().id(8L).code("CP-8").supplier(supplier)
+                .startsAt(LocalDate.now()).endsAt(LocalDate.now().plusYears(1)).currency("PEN")
+                .discountPercentage(BigDecimal.ZERO).paymentDays(30).minimumPurchase(BigDecimal.ZERO)
+                .active(false).build();
+        when(contracts.findById(8L)).thenReturn(Optional.of(existing));
+        when(contracts.save(any(ContratoProveedor.class))).thenAnswer(i -> i.getArgument(0));
+
+        ContratoProveedor updated = contract(LocalDate.now(), LocalDate.now().plusYears(2));
+        updated.setTerms("Nuevo término");
+        var result = new ContratoProveedorService(contracts, suppliers, audit).actualizarDto(5L, 8L, updated);
+
+        assertEquals("Nuevo término", result.terms());
+        assertEquals(8L, result.id());
+        new ContratoProveedorService(contracts, suppliers, audit).reactivarDto(5L, 8L);
+        assertEquals(true, existing.getActive());
+    }
+
+    @Test
+    void noPermiteConsultarNiDesactivarUnContratoDeOtroProveedor() {
+        Proveedor supplier = Proveedor.builder().id(5L).businessName("Proveedor").build();
+        ContratoProveedor existing = ContratoProveedor.builder().id(8L).code("CP-8").supplier(supplier)
+                .active(true).build();
+        when(contracts.findById(8L)).thenReturn(Optional.of(existing));
+
+        ContratoProveedorService service = new ContratoProveedorService(contracts, suppliers, audit);
+        assertThrows(ResourceNotFoundException.class, () -> service.obtenerDto(6L, 8L));
+        assertThrows(ResourceNotFoundException.class, () -> service.desactivarDto(6L, 8L));
+        assertTrue(existing.getActive());
+        verify(contracts, never()).save(any());
+    }
+
     private ContratoProveedor contract(LocalDate start, LocalDate end) {
         return ContratoProveedor.builder().startsAt(start).endsAt(end).currency("PEN")
                 .discountPercentage(BigDecimal.ZERO).paymentDays(30).minimumPurchase(BigDecimal.ZERO).terms("Pago a crédito").build();

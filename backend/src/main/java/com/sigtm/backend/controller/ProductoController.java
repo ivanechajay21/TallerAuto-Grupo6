@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Endpoints del inventario de repuestos.
@@ -32,6 +33,33 @@ public class ProductoController {
     // Acceso por permiso de los módulos PRODUCTOS / MOVIMIENTOS / MI_TRABAJO.
     // El detalle (GET /{id}) se alinea con PRODUCTOS:VER: todo rol con el módulo
     // Inventario (incluido el mecánico) puede consultarlo.
+    /**
+     * Devuelve los productos paginados con búsqueda, filtros y resumen.
+     *
+     * <p>Exige {@code PRODUCTOS:VER}. El resumen y las categorías se calculan
+     * sobre todo el inventario.</p>
+     *
+     * @param page             página solicitada, empezando en cero
+     * @param size             tamaño de página
+     * @param incluirInactivos {@code true} para incluir productos desactivados
+     * @param search           texto libre opcional
+     * @param category         categoría exacta o {@code TODAS}
+     * @param stock            {@code TODOS}, {@code BAJO}, {@code AGOTADO} o {@code INACTIVO}
+     * @return la página de productos y el resumen (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('PRODUCTOS:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "false") boolean incluirInactivos,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "TODAS") String category,
+            @RequestParam(required = false, defaultValue = "TODOS") String stock) {
+        return ResponseEntity.ok(productoService.buscarPaginado(
+                page, size, incluirInactivos, search, category, stock));
+    }
+
     /**
      * Lista los repuestos del inventario con filtros opcionales.
      *

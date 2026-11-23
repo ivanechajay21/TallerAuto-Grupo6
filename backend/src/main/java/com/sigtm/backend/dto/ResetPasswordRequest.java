@@ -15,7 +15,7 @@ public record ResetPasswordRequest(
         String token,
 
         @NotBlank(message = "La nueva contraseña es obligatoria")
-        @Size(min = 12, message = "La contraseña debe tener al menos 12 caracteres")
+        @Size(min = 12, max = 72, message = "La contraseña debe tener entre 12 y 72 caracteres")
         String newPassword
 ) {
 }

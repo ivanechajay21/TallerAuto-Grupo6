@@ -35,12 +35,50 @@ spring:
 
 server:
   port: 8080
+  # No exponer detalles internos en las respuestas de error.
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+  health:
+    db:
+      enabled: true
+    mail:
+      # El SMTP es opcional; un credencial ausente no debe tumbar el healthcheck.
+      enabled: false
+
+info:
+  app:
+    name: SIGTM Backend
+    description: API del taller mecanico SIGTM
 
 # JWT Configuration
 app:
   jwt:
     secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    # Sesión de trabajo: 2 horas. Ajustable por variable de entorno.
+    expiration-ms: ${JWT_EXPIRATION_MS:7200000}
+    issuer: ${JWT_ISSUER:sigtm-backend}
+    audience: ${JWT_AUDIENCE:sigtm-web}
+
+  mfa:
+    required-for-admin: ${MFA_REQUIRED_FOR_ADMIN:true}
+    issuer: ${MFA_ISSUER:SIGTM}
+
+  cookie:
+    # En producción con HTTPS debe ser true. En local por HTTP debe ser false.
+    secure: ${COOKIE_SECURE:false}
+    same-site: ${COOKIE_SAME_SITE:Strict}
 
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
@@ -56,4 +94,4 @@ app:
     enabled: ${SEED_DATA:false}
 
   export:
-    apache-poi-enabled: ${USE_APACHE_POI:false}
+    apache-poi-enabled: ${USE_APACHE_POI:true}

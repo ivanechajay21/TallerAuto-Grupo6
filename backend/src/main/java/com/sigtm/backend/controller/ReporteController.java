@@ -2,12 +2,14 @@ package com.sigtm.backend.controller;
 
 import com.sigtm.backend.service.ReporteService;
 import com.sigtm.backend.service.ReporteExcelService;
+import com.sigtm.backend.service.ReportePdfService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,8 +30,9 @@ public class ReporteController {
 
     private final ReporteService reporteService;
     private final ReporteExcelService reporteExcelService;
+    private final ReportePdfService reportePdfService;
 
-    @Value("${app.export.apache-poi-enabled:false}")
+    @Value("${app.export.apache-poi-enabled:true}")
     private boolean apachePoiEnabled;
 
     // Acceso por permiso de los módulos DASHBOARD / REPORTES. Todo rol con acceso
@@ -148,7 +151,7 @@ public class ReporteController {
     /**
      * Genera el Excel del centro de reportes en el servidor usando Apache POI.
      *
-     * <p>El endpoint se habilita únicamente con {@code USE_APACHE_POI=true}. Los
+     * <p>El endpoint se habilita con {@code USE_APACHE_POI} (true por defecto). Los
      * datos se consultan en el servidor y requieren {@code REPORTES:EXPORTAR}; no
      * se aceptan filas suministradas por el cliente.</p>
      *
@@ -157,19 +160,46 @@ public class ReporteController {
      */
     @GetMapping(value = "/centro/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @PreAuthorize("hasAuthority('REPORTES:EXPORTAR')")
-    public ResponseEntity<byte[]> exportarCentroExcel(@RequestParam String tipo) {
+    public ResponseEntity<byte[]> exportarCentroExcel(@RequestParam String tipo, Authentication authentication) {
         if (!apachePoiEnabled) {
             return ResponseEntity.notFound().build();
         }
 
         Map<String, Object> reporte = reporteService.obtenerCentroReportes(tipo);
-        byte[] archivo = reporteExcelService.generar(reporte);
+        String usuario = authentication == null ? null : authentication.getName();
+        byte[] archivo = reporteExcelService.generar(reporte, usuario);
         String tipoReporte = String.valueOf(reporte.get("tipo")).toLowerCase().replaceAll("[^a-z0-9]+", "-");
         String nombre = "reporte-" + tipoReporte + ".xlsx";
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                .body(archivo);
+    }
+
+    /**
+     * Genera el PDF del centro de reportes en el servidor.
+     *
+     * <p>Los datos se consultan en el servidor y requieren
+     * {@code REPORTES:EXPORTAR}; no se aceptan filas suministradas por el cliente.</p>
+     *
+     * @param tipo tipo de reporte a exportar
+     * @return archivo PDF (200)
+     */
+    @GetMapping(value = "/centro/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAuthority('REPORTES:EXPORTAR')")
+    public ResponseEntity<byte[]> exportarCentroPdf(@RequestParam String tipo, Authentication authentication) {
+        Map<String, Object> reporte = reporteService.obtenerCentroReportes(tipo);
+        String usuario = authentication == null ? null : authentication.getName();
+        byte[] archivo = reportePdfService.generar(reporte, usuario);
+        String tipoReporte = String.valueOf(reporte.get("tipo")).toLowerCase().replaceAll("[^a-z0-9]+", "-");
+        String nombre = "reporte-" + tipoReporte + ".pdf";
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombre + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
                 .body(archivo);
     }
 }

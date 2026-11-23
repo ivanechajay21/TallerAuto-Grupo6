@@ -17,7 +17,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -93,6 +95,43 @@ class ProductoControllerTest {
                 .andExpect(status().isOk());
 
         verify(productoService).obtenerTodos(true, "ace");
+    }
+
+    @Test
+    @DisplayName("GET /api/productos/paginado devuelve página y resumen")
+    @WithMockUser(authorities = "PRODUCTOS:VER")
+    void paginado_ok() throws Exception {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", 4);
+        resumen.put("lowStock", 1);
+        resumen.put("outOfStock", 1);
+        resumen.put("inactive", 0);
+        resumen.put("value", new BigDecimal("120.00"));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", List.of(producto()));
+        respuesta.put("page", 1);
+        respuesta.put("size", 10);
+        respuesta.put("totalElements", 4);
+        respuesta.put("totalPages", 1);
+        respuesta.put("summary", resumen);
+        respuesta.put("categories", List.of("Filtros"));
+
+        when(productoService.buscarPaginado(0, 10, false, "filtro", "Filtros", "TODOS"))
+                .thenReturn(respuesta);
+
+        mockMvc.perform(get("/api/productos/paginado")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("search", "filtro")
+                        .param("category", "Filtros")
+                        .param("stock", "TODOS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].code").value("P1"))
+                .andExpect(jsonPath("$.summary.lowStock").value(1))
+                .andExpect(jsonPath("$.categories[0]").value("Filtros"));
+
+        verify(productoService).buscarPaginado(0, 10, false, "filtro", "Filtros", "TODOS");
     }
 
     @Test

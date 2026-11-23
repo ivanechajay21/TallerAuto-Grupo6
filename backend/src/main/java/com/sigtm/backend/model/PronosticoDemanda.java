@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /** Demanda prevista para un repuesto en un período mensual (AAAA-MM). */
 @Entity
-@Table(name = "pronosticos_demanda", uniqueConstraints = @UniqueConstraint(columnNames = {"producto_id", "periodo"}))
+@Table(name = "pronosticos_demanda", uniqueConstraints = @UniqueConstraint(columnNames = {"producto_id", "period"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PronosticoDemanda extends Auditable {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;

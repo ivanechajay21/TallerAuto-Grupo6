@@ -609,8 +609,11 @@ public class ReporteService {
             int qty = item.getQuantity() != null ? item.getQuantity() : 1;
             if (item.getServiceCatalog() != null) {
                 servicios.merge(item.getServiceCatalog().getName(), qty, Integer::sum);
-            } else {
+            } else if (item.getProduct() != null) {
                 repuestos.merge(item.getDescription(), qty, Integer::sum);
+            } else {
+                // Concepto personalizado: se considera mano de obra/servicio, no repuesto.
+                servicios.merge(item.getDescription(), qty, Integer::sum);
             }
             if (item.getMechanic() != null) {
                 porMecanico.merge(item.getMechanic().getName() + " " + item.getMechanic().getLastName(), 1, Integer::sum);

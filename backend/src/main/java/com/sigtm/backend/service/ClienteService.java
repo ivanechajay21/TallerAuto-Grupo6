@@ -4,11 +4,20 @@ import com.sigtm.backend.exception.DuplicateResourceException;
 import com.sigtm.backend.exception.ResourceNotFoundException;
 import com.sigtm.backend.model.Cliente;
 import com.sigtm.backend.repository.ClienteRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Administra el padrón de clientes del taller.
@@ -32,6 +41,77 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public List<Cliente> obtenerTodos() {
         return clienteRepository.findAll();
+    }
+
+    /**
+     * Busca clientes con búsqueda, filtro de estado, paginación y resumen.
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página; se limita a 100
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param sort   orden solicitado
+     * @return página de clientes y resumen del padrón
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> buscarPaginado(int page, int size, String search, String status, String sort) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.min(100, Math.max(1, size));
+        String texto = search == null ? null : search.trim().toLowerCase(Locale.ROOT);
+        String estado = status == null ? "TODOS" : status.trim().toUpperCase(Locale.ROOT);
+
+        Specification<Cliente> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if ("ACTIVOS".equals(estado)) {
+                predicates.add(cb.isTrue(root.get("active")));
+            } else if ("INACTIVOS".equals(estado)) {
+                predicates.add(cb.isFalse(root.get("active")));
+            }
+            if (texto != null && !texto.isBlank()) {
+                String like = "%" + texto + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("firstName")), like),
+                        cb.like(cb.lower(root.get("lastName")), like),
+                        cb.like(cb.lower(root.get("documentNumber")), like),
+                        cb.like(cb.lower(root.get("code")), like),
+                        cb.like(cb.lower(root.get("phone")), like),
+                        cb.like(cb.lower(root.get("whatsapp")), like),
+                        cb.like(cb.lower(root.get("email")), like)
+                ));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        String ordenSolicitado = sort == null ? "reciente" : sort.trim().toLowerCase(Locale.ROOT);
+        Sort orden = switch (ordenSolicitado) {
+            case "antigua" -> Sort.by(Sort.Direction.ASC, "registrationDate");
+            case "nombre" -> Sort.by(Sort.Direction.ASC, "firstName")
+                    .and(Sort.by(Sort.Direction.ASC, "lastName"));
+            case "codigo" -> Sort.by(Sort.Direction.ASC, "code");
+            default -> Sort.by(Sort.Direction.DESC, "registrationDate")
+                    .and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+
+        Page<Cliente> resultado = clienteRepository.findAll(
+                spec, PageRequest.of(pageIndex, pageSize, orden));
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("content", resultado.getContent());
+        respuesta.put("page", resultado.getNumber() + 1);
+        respuesta.put("size", resultado.getSize());
+        respuesta.put("totalElements", resultado.getTotalElements());
+        respuesta.put("totalPages", resultado.getTotalPages());
+        respuesta.put("summary", resumenClientes());
+        return respuesta;
+    }
+
+    private Map<String, Object> resumenClientes() {
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("total", clienteRepository.count());
+        resumen.put("active", clienteRepository.countByActiveTrue());
+        resumen.put("inactive", clienteRepository.countByActiveFalse());
+        resumen.put("whatsapp", clienteRepository.countByWhatsappIsNotNullAndWhatsappNot(""));
+        return resumen;
     }
 
     /**

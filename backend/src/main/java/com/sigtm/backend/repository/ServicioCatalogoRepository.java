@@ -24,9 +24,24 @@ public interface ServicioCatalogoRepository extends JpaRepository<ServicioCatalo
     Optional<ServicioCatalogo> findByCode(String code);
 
     /**
+     * Busca un servicio por código sin distinguir mayúsculas ni minúsculas.
+     *
+     * @param code código o SKU del servicio.
+     * @return el servicio encontrado o vacío si el código no existe.
+     */
+    Optional<ServicioCatalogo> findByCodeIgnoreCase(String code);
+
+    /**
      * Lista los servicios activos del catálogo.
      *
      * @return servicios marcados como activos.
      */
     List<ServicioCatalogo> findByActiveTrue();
+
+    /**
+     * Lista todo el catálogo, incluidos los servicios inactivos.
+     *
+     * @return todos los servicios ordenados por nombre.
+     */
+    List<ServicioCatalogo> findAllByOrderByNameAsc();
 }

@@ -17,6 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -56,12 +58,22 @@ public class AuthService {
      */
     @Transactional
     public void forgotPassword(String email) {
-        Optional<Usuario> usuarioOpcional = usuarioRepository.findByEmail(email);
+        String correo = email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        Optional<Usuario> usuarioOpcional = usuarioRepository.findByEmailIgnoreCase(correo);
         if (usuarioOpcional.isEmpty()) {
-            log.info("Solicitud de reset para correo no registrado: {}", email);
+            log.info("Solicitud de reset para correo no registrado: {}", correo);
             return;
         }
         Usuario usuario = usuarioOpcional.get();
+        if (!Boolean.TRUE.equals(usuario.getActive())) {
+            log.info("Solicitud de reset ignorada para cuenta inactiva: {}", usuario.getUsername());
+            return;
+        }
+        if (!emailService.estaConfigurado()) {
+            log.warn("No se emitió token de recuperación para {}: MAIL_USERNAME/MAIL_PASSWORD no están configurados.",
+                    usuario.getUsername());
+            return;
+        }
 
         byte[] bytes = new byte[32];
         RANDOM.nextBytes(bytes);
@@ -75,10 +87,15 @@ public class AuthService {
                 .build();
         tokenRepository.save(tokenReset);
 
-        emailService.sendHtmlEmail(
+        String nombreCompleto = (usuario.getName() + " "
+                + (usuario.getLastName() == null ? "" : usuario.getLastName())).trim();
+        boolean enviado = emailService.sendHtmlEmail(
                 usuario.getEmail(),
                 "Recuperación de contraseña — SIGTM",
-                emailService.buildResetPasswordEmail(usuario.getName(), token));
+                emailService.buildResetPasswordEmail(nombreCompleto, token));
+        if (!enviado) {
+            log.warn("El token de recuperación de {} no pudo enviarse por correo.", usuario.getUsername());
+        }
     }
 
     /**
@@ -95,12 +112,14 @@ public class AuthService {
     @Transactional
     public void resetPassword(String token, String newPassword) {
         TokenResetContrasena tokenReset = tokenRepository.findByToken(hashToken(token))
-                .orElseThrow(() -> new RuntimeException("El enlace de recuperación no es válido."));
+                .orElseThrow(() -> new IllegalArgumentException("El enlace de recuperación no es válido."));
         if (!tokenReset.isValid()) {
-            throw new RuntimeException("El enlace de recuperación ha expirado o ya fue utilizado.");
+            throw new IllegalArgumentException("El enlace de recuperación ha expirado o ya fue utilizado.");
         }
 
         Usuario usuario = tokenReset.getUser();
+        com.sigtm.backend.security.PasswordPolicy.validate(
+                newPassword, usuario.getUsername(), usuario.getEmail());
         usuario.setPassword(passwordEncoder.encode(newPassword));
         usuario.setTokenVersion(usuario.getTokenVersion() + 1);
         usuarioRepository.save(usuario);
@@ -110,6 +129,10 @@ public class AuthService {
 
         notificacionService.crear(usuario.getId(), "SISTEMA", "Contraseña actualizada",
                 "Tu contraseña fue restablecida correctamente.", null);
+
+        notificacionService.notificarRol(List.of("ROLE_ADMIN"), "SEGURIDAD", "Contraseña restablecida",
+                "El usuario " + usuario.getUsername() + " restableció su contraseña desde el enlace de recuperación.",
+                "/usuarios");
 
         auditoriaService.registrar("UPDATE", "USUARIO", usuario.getId(),
                 "Contraseña restablecida para el usuario " + usuario.getUsername(), usuario.getUsername());

@@ -1,1 +1,9 @@
-package com.sigtm.backend.repository; import com.sigtm.backend.model.InspeccionRecepcionCompra; import org.springframework.data.jpa.repository.JpaRepository; import java.util.List; public interface InspeccionRecepcionCompraRepository extends JpaRepository<InspeccionRecepcionCompra,Long>{ List<InspeccionRecepcionCompra> findByReceiptIdOrderByInspectedAtDesc(Long receiptId); }
+package com.sigtm.backend.repository;
+
+import com.sigtm.backend.model.InspeccionRecepcionCompra;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface InspeccionRecepcionCompraRepository extends JpaRepository<InspeccionRecepcionCompra, Long> {
+    List<InspeccionRecepcionCompra> findByReceiptIdOrderByInspectedAtDesc(Long receiptId);
+}

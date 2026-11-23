@@ -4,18 +4,105 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SIGTM · Taller Mecánico</title>
+    <title>SIGTM | Taller Mecánico</title>
+    <script src="/theme-init.js"></script>
+    <style>
+      #preload-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(37, 99, 235, 0.22), transparent 34%),
+          radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.18), transparent 34%),
+          linear-gradient(135deg, #172554 0%, #0f172a 52%, #020617 100%);
+        color: #ffffff;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      #preload-splash .preload-content { position: relative; display: flex; flex-direction: column; align-items: center; padding: 24px; text-align: center; }
+      #preload-splash .preload-logo {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 96px;
+        height: 96px;
+        padding: 8px;
+        overflow: hidden;
+        border-radius: 28px;
+        background: linear-gradient(135deg, #3b82f6, #4f46e5);
+        box-shadow: 0 24px 60px rgba(37, 99, 235, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+      }
+      #preload-splash .preload-logo::after {
+        content: "";
+        position: absolute;
+        inset: -8px;
+        border-radius: 34px;
+        border: 2px solid transparent;
+        border-right-color: rgba(147, 197, 253, 0.65);
+        border-bottom-color: rgba(147, 197, 253, 0.35);
+        animation: preload-spin 1.4s linear infinite;
+      }
+      #preload-splash img { width: 100%; height: 100%; border-radius: 20px; background: transparent; object-fit: contain; padding: 4px; }
+      #preload-splash .preload-fallback { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; }
+      #preload-splash h1 { max-width: 90vw; margin: 30px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 34px; font-weight: 800; letter-spacing: -0.04em; }
+      #preload-splash p { margin: 7px 0 0; font-size: 10px; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(191, 219, 254, 0.72); }
+      #preload-splash .preload-dots { display: flex; gap: 7px; margin-top: 30px; }
+      #preload-splash .preload-dots span { width: 8px; height: 8px; border-radius: 999px; background: #60a5fa; animation: preload-bounce 1s ease-in-out infinite; }
+      #preload-splash .preload-dots span:nth-child(2) { animation-delay: 0.15s; }
+      #preload-splash .preload-dots span:nth-child(3) { animation-delay: 0.3s; }
+      #preload-splash small { margin-top: 16px; font-size: 11px; color: #64748b; }
+      @keyframes preload-spin { to { transform: rotate(360deg); } }
+      @keyframes preload-bounce { 0%, 100% { transform: translateY(0); opacity: 0.55; } 50% { transform: translateY(-6px); opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        #preload-splash .preload-logo::after,
+        #preload-splash .preload-dots span { animation: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preload-splash" role="status" aria-label="Cargando sistema">
+      <div class="preload-content">
+        <div class="preload-logo">
+          <span id="preload-logo-fallback" class="preload-fallback">S</span>
+          <img id="preload-logo-image" alt="" style="display: none" />
+        </div>
+        <h1 id="preload-name">SIGTM</h1>
+        <p id="preload-subtitle">Taller Mecánico</p>
+        <div class="preload-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <small>Iniciando sistema…</small>
+      </div>
+    </div>
     <script>
       (function () {
         try {
-          var t = localStorage.getItem('sigtm-theme');
-          if (t === 'dark') document.documentElement.classList.add('dark');
-        } catch (e) {}
+          var raw = localStorage.getItem('sigtm-brand');
+          if (!raw) return;
+          var brand = JSON.parse(raw);
+          if (brand && brand.name) {
+            document.getElementById('preload-name').textContent = brand.name;
+            document.getElementById('preload-subtitle').textContent =
+              brand.name.trim().toUpperCase() === 'SIGTM'
+                ? 'Taller Mecánico'
+                : 'SIGTM · Taller Mecánico';
+            document.title = brand.name + ' | SIGTM';
+          }
+          if (brand && brand.logo) {
+            var image = document.getElementById('preload-logo-image');
+            image.src = brand.logo;
+            image.alt = brand.name || 'Logo del taller';
+            image.style.display = 'block';
+            document.getElementById('preload-logo-fallback').style.display = 'none';
+          }
+        } catch (error) {
+          /* Si localStorage está bloqueado, se mantiene SIGTM. */
+        }
       })();
     </script>
-  </head>
-  <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/principal.tsx"></script>
   </body>
 </html>

@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Endpoints del padrón de clientes del taller.
@@ -27,6 +28,30 @@ public class ClienteController {
 
     // Acceso por permiso (administrado desde Roles y Permisos). Cada endpoint exige
     // el permiso de la acción correspondiente del módulo CLIENTES.
+    /**
+     * Devuelve los clientes paginados con búsqueda, filtro de estado y resumen.
+     *
+     * <p>Exige {@code CLIENTES:VER}. El resumen se calcula sobre todo el padrón,
+     * no solo sobre la página solicitada.</p>
+     *
+     * @param page   página solicitada, empezando en cero
+     * @param size   tamaño de página
+     * @param search texto libre opcional
+     * @param status {@code TODOS}, {@code ACTIVOS} o {@code INACTIVOS}
+     * @param sort   orden solicitado
+     * @return la página de clientes y el resumen (200)
+     */
+    @GetMapping("/paginado")
+    @PreAuthorize("hasAuthority('CLIENTES:VER')")
+    public ResponseEntity<Map<String, Object>> obtenerPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "9") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "TODOS") String status,
+            @RequestParam(required = false, defaultValue = "reciente") String sort) {
+        return ResponseEntity.ok(clienteService.buscarPaginado(page, size, search, status, sort));
+    }
+
     /**
      * Lista todos los clientes del padrón.
      *
